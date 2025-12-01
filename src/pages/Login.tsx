@@ -33,7 +33,7 @@ export default function Login() {
 
   useEffect(() => {
     // Persist last selected role for convenience
-    try { localStorage.setItem('lastRole', role); } catch {}
+    try { localStorage.setItem('lastRole', role); } catch { }
   }, [role]);
 
   const go = () => {
@@ -41,14 +41,24 @@ export default function Login() {
     const dest = role === "farmer"
       ? "/farmers"
       : role === "distributor"
-      ? "/distributors"
-      : role === "retailer"
-      ? "/retailers"
-      : role === "verifier"
-      ? "/verifiers"
-      : "/consumers";
+        ? "/distributors"
+        : role === "retailer"
+          ? "/retailers"
+          : role === "verifier"
+            ? "/verifiers"
+            : "/consumers";
+
+    // Default addresses matching server/src/index.js
+    const addresses: Record<string, string> = {
+      farmer: '0x1111111111111111111111111111111111111111',
+      distributor: '0x2222222222222222222222222222222222222222',
+      retailer: '0x3333333333333333333333333333333333333333',
+      consumer: '0x4444444444444444444444444444444444444444',
+      verifier: '0x9999999999999999999999999999999999999999' // Arbitrary for verifier
+    };
+
     // For testing, accept any email/password; no OTP and no wallet required
-    login({ role, email });
+    login({ role, email, address: addresses[role] });
     nav(dest);
   };
 
@@ -60,7 +70,7 @@ export default function Login() {
         <p className="text-muted-foreground">{t("login.description")}</p>
 
         <Card className="p-6">
-          <Tabs value={role} onValueChange={(v)=>setRole(v as any)}>
+          <Tabs value={role} onValueChange={(v) => setRole(v as any)}>
             <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-w-full sm:max-w-2xl">
               <TabsTrigger value="farmer">{t("nav.farmers")}</TabsTrigger>
               <TabsTrigger value="distributor">{t("nav.distributors")}</TabsTrigger>
@@ -69,7 +79,7 @@ export default function Login() {
               <TabsTrigger value="verifier">{t("nav.verifiers")}</TabsTrigger>
             </TabsList>
 
-            {(["farmer","distributor","retailer","consumer","verifier"] as const).map((r) => (
+            {(["farmer", "distributor", "retailer", "consumer", "verifier"] as const).map((r) => (
               <TabsContent value={r} key={r} className="mt-6">
                 <div className="max-w-md w-full">
                   <Card className="p-6">
@@ -77,11 +87,11 @@ export default function Login() {
                     <div className="space-y-3">
                       <div className="space-y-1">
                         <Label>{t("login.email")}</Label>
-                        <Input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="you@gmail.com" />
+                        <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gmail.com" />
                       </div>
                       <div className="space-y-1">
                         <Label>{t("login.password")}</Label>
-                        <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="••••••••" />
+                        <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
                       </div>
                       <div className="flex gap-2">
                         <Button onClick={go}>{t("login.continue")}</Button>

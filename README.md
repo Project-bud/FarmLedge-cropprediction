@@ -69,7 +69,18 @@ The following technologies power **FarmLedge**, along with their icons and usage
 - **Idempotent Webhooks**  
   Automatic duplicate-write protection (handles nonce errors).
 
-� Verifier UX & Workflow (Latest)
+🌱 Supply Chain Features (New)
+
+- **Batch Splitting**  
+  Buyers can purchase partial quantities, creating new "child" batches on-chain while preserving the "parent" batch's history.
+- **Parent-Child Lineage**  
+  Full traceability from the original farm batch down to the smallest consumer unit.
+- **Historical Price Tracking**  
+  Split batches inherit and preserve the price history (Farmer → Distributor → Retailer) of their parent batches.
+- **Role-Based Dashboards**  
+  Dedicated interfaces for Farmers, Distributors, Retailers, and Consumers with role-specific purchase and pricing logic.
+
+ Verifier UX & Workflow (Latest)
 
 - **Themed Verify Modal**  
   Verifiers get a themed dialog to confirm and enter a passkey before marking a batch as Verified.

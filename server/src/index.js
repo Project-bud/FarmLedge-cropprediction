@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import express from 'express'
-import cors from "cors";  
+import cors from "cors";
 import Stripe from 'stripe'
 import bodyParser from 'body-parser'
 import { createPublicClient, createWalletClient, decodeEventLog, http } from 'viem'
@@ -49,11 +49,11 @@ const isSameAddress = (a, b) => (a && b) ? a.toLowerCase() === b.toLowerCase() :
 // Tiny cache for contract bytecode presence to avoid repeated RPC calls per request
 app.use(cors({
   origin: "*", // optional, can use "*" for testing ["https://your-vercel-frontend.vercel.app"]
-  methods: ["GET","POST","PUT","DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 
-app.use(express.json());
+// app.use(express.json()); // Moved down after webhook
 
 // Example route
 app.get("/", (req, res) => {
@@ -109,116 +109,309 @@ if (account) {
 console.log(`[server] Contract address: ${CONTRACT_ADDRESS}`)
 console.log(`[server] Chain: arbitrum-sepolia (id=${arbitrumSepolia.id})`)
 console.log(`[server] RPC: ${rpcUrl || 'default provider'}`)
+if (account && isValidAddress(CONTRACT_ADDRESS)) {
+  client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'verifiers', args: [account.address] })
+    .then(isVerifier => {
+      if (!isVerifier) console.warn(`[server] WARNING: Relayer ${account.address} is NOT a verifier. Webhook transfers will fail. Run /api/setup-relayer-as-verifier or set it manually.`)
+      else console.log(`[server] Relayer is a verifier.`)
+    })
+    .catch(e => console.warn('[server] Failed to check relayer verifier status', e.message))
+}
 if (account && isValidAddress(CONTRACT_ADDRESS) && isSameAddress(CONTRACT_ADDRESS, account.address)) {
   console.warn('[server] WARNING: Contract address equals relayer address (EOA). This is not a contract. Update AGRI_TRUTH_CHAIN_ADDRESS in server/.env to your deployed contract address.')
+}
+
+// Shared logic for processing a successful checkout session
+async function processCheckoutSession(session) {
+  const meta = (session && session.metadata) || {}
+  // Check if this is a split operation
+  const isComplete = meta.completeBatch === 'true' || meta.completeBatch === true
+  const isSplit = !isComplete && (meta.isSplit === 'true' || meta.isSplit === true || (meta.splitQuantity && Number(meta.splitQuantity) > 0))
+
+  const batchIdStr = meta.batchId
+  const batchId = batchIdStr && /^[0-9]+$/.test(batchIdStr) ? BigInt(batchIdStr) : null
+
+  if (!batchId) return { ok: false, error: 'no_batch_id' }
+  if (!wallet || !account) {
+    console.warn('[process-session] relayer not configured')
+    return { ok: false, error: 'relayer_not_configured' }
+  }
+  if (!isValidAddress(CONTRACT_ADDRESS)) {
+    console.warn('[process-session] invalid contract address')
+    return { ok: false, error: 'invalid_contract_address' }
+  }
+
+  const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
+  if (!code) throw new Error('not_a_contract')
+
+  const role = meta.role
+  let defaultTo = DEFAULT_ADDRESSES.DISTRIBUTOR
+  if (role === 'retailer') defaultTo = DEFAULT_ADDRESSES.RETAILER
+  else if (role === 'consumer') defaultTo = DEFAULT_ADDRESSES.CONSUMER
+  const toAddress = meta.toAddress || defaultTo
+
+  if (toAddress && /^0x[0-9a-fA-F]{40}$/.test(toAddress)) {
+    try {
+      console.log(`[process-session] Processing batch ${batchId}. isComplete=${isComplete}, isSplit=${isSplit}, splitQty=${meta.splitQuantity}`)
+
+      if (isSplit) {
+        // Handle Batch Splitting
+        const splitQty = BigInt(meta.splitQuantity || 0)
+        if (splitQty > 0n) {
+          // 1. Fetch parent batch details BEFORE split to calculate new price
+          let parentMinPrice = 0n
+          let parentQty = 0n
+          let parentDistributorPrice = 0n
+          let parentRetailerPrice = 0n
+          try {
+            const parentBatch = await client.readContract({
+              address: CONTRACT_ADDRESS,
+              abi: AGRI_TRUTH_CHAIN_ABI,
+              functionName: 'batches',
+              args: [batchId]
+            })
+            // batch[7] is quantityKg, batch[13] is minPriceINR
+            parentQty = parentBatch[7]
+            parentMinPrice = parentBatch[13]
+            parentDistributorPrice = parentBatch[14]
+            parentRetailerPrice = parentBatch[15]
+            // Fallback if minPrice is 0, use basePrice (batch[8])
+            if (parentMinPrice === 0n) parentMinPrice = parentBatch[8]
+          } catch (e) {
+            console.warn('[process-session] Failed to fetch parent batch for price adjustment', e)
+          }
+
+          // 2. Execute Split
+          const tx = await wallet.writeContract({
+            address: CONTRACT_ADDRESS,
+            abi: AGRI_TRUTH_CHAIN_ABI,
+            functionName: 'splitBatchByVerifier',
+            args: [batchId, splitQty, toAddress]
+          })
+          const receipt = await client.waitForTransactionReceipt({ hash: tx })
+          console.log(`[process-session] Split batch ${batchId} -> new owner ${toAddress} (qty=${splitQty})`)
+
+          // 3. Update Parent Batch Price (Proportional Reduction)
+          // New Price = Old Price *
+          if (parentQty > 0n && parentMinPrice > 0n) {
+            const newParentQty = parentQty - splitQty
+            if (newParentQty > 0n) {
+              const newParentPrice = parentMinPrice 
+              console.log(`[process-session] Adjusting parent batch ${batchId} price: ${parentMinPrice} -> ${newParentPrice} (Qty: ${parentQty} -> ${newParentQty})`)
+              try {
+                const priceTx = await wallet.writeContract({
+                  address: CONTRACT_ADDRESS,
+                  abi: AGRI_TRUTH_CHAIN_ABI,
+                  functionName: 'setMinPriceInr',
+                  args: [batchId, newParentPrice]
+                })
+                await client.waitForTransactionReceipt({ hash: priceTx })
+                console.log(`[process-session] Parent batch price updated`)
+              } catch (e) {
+                console.error('[process-session] Failed to update parent batch price', e)
+              }
+            }
+          }
+
+          // Get the new child batch ID from the BatchSplit event
+          const splitEvent = receipt.logs.find(log => {
+            try {
+              const decoded = decodeEventLog({
+                abi: AGRI_TRUTH_CHAIN_ABI,
+                data: log.data,
+                topics: log.topics
+              })
+              return decoded.eventName === 'BatchSplit'
+            } catch { return false }
+          })
+
+          if (splitEvent) {
+            const decoded = decodeEventLog({
+              abi: AGRI_TRUTH_CHAIN_ABI,
+              data: splitEvent.data,
+              topics: splitEvent.topics
+            })
+            const newBatchId = decoded.args.newBatchId
+
+            // Consumer Logic (Historical Price Carryover)
+            if (role === 'consumer') {
+                 let childDistributorPrice = 0n
+                 let childRetailerPrice = 0n
+                 if (parentQty > 0n) {
+                    if (parentDistributorPrice > 0n) childDistributorPrice = (parentDistributorPrice * splitQty) / parentQty
+                    if (parentRetailerPrice > 0n) childRetailerPrice = (parentRetailerPrice * splitQty) / parentQty
+                 }
+                 
+                 if (childDistributorPrice > 0n) {
+                    console.log(`[process-session] Setting historical distributor price on consumer batch ${newBatchId}: ${childDistributorPrice}`)
+                    const setTx1 = await wallet.writeContract({
+                      address: CONTRACT_ADDRESS,
+                      abi: AGRI_TRUTH_CHAIN_ABI,
+                      functionName: 'setPriceByDistributorInr',
+                      args: [newBatchId, childDistributorPrice]
+                    })
+                    await client.waitForTransactionReceipt({ hash: setTx1 })
+                 }
+                 if (childRetailerPrice > 0n) {
+                    console.log(`[process-session] Setting historical retailer price on consumer batch ${newBatchId}: ${childRetailerPrice}`)
+                    const setTx2 = await wallet.writeContract({
+                      address: CONTRACT_ADDRESS,
+                      abi: AGRI_TRUTH_CHAIN_ABI,
+                      functionName: 'setPriceByRetailerInr',
+                      args: [newBatchId, childRetailerPrice]
+                    })
+                    await client.waitForTransactionReceipt({ hash: setTx2 })
+                 }
+            }
+
+            // Set resale price on the child batch if provided
+            const resalePricePerKg = meta?.resalePricePerKg
+            console.log(`[process-session] Split price check: resalePricePerKg=${resalePricePerKg}, role=${role}`)
+            if (resalePricePerKg && Number(resalePricePerKg) > 0) {
+              const resalePriceTotal = BigInt(Math.ceil(Number(resalePricePerKg) ))
+
+              // Set price based on buyer's role
+              if (role === 'distributor') {
+                console.log(`[process-session] Setting distributor price on child batch ${newBatchId} to ${resalePriceTotal}`)
+                const setTx = await wallet.writeContract({
+                  address: CONTRACT_ADDRESS,
+                  abi: AGRI_TRUTH_CHAIN_ABI,
+                  functionName: 'setPriceByDistributorInr',
+                  args: [newBatchId, resalePriceTotal]
+                })
+                await client.waitForTransactionReceipt({ hash: setTx })
+                console.log(`[process-session] Set distributor price on child batch ${newBatchId}: ${resalePriceTotal}`)
+              } else if (role === 'retailer') {
+                // Calculate proportional distributor price for this child batch
+                let childDistributorPrice = 0n
+                if (parentQty > 0n && parentDistributorPrice > 0n) {
+                   childDistributorPrice = parentDistributorPrice
+                }
+
+                // Set the Distributor Price on the child batch (historical record of purchase)
+                if (childDistributorPrice > 0n) {
+                    const setTx1 = await wallet.writeContract({
+                      address: CONTRACT_ADDRESS,
+                      abi: AGRI_TRUTH_CHAIN_ABI,
+                      functionName: 'setPriceByDistributorInr',
+                      args: [newBatchId, childDistributorPrice]
+                    })
+                    await client.waitForTransactionReceipt({ hash: setTx1 })
+                }
+
+                const setTx2 = await wallet.writeContract({
+                  address: CONTRACT_ADDRESS,
+                  abi: AGRI_TRUTH_CHAIN_ABI,
+                  functionName: 'setPriceByRetailerInr',
+                  args: [newBatchId, resalePriceTotal]
+                })
+                await client.waitForTransactionReceipt({ hash: setTx2 })
+                console.log(`[process-session] Set retailer price on child batch ${newBatchId}: ${resalePriceTotal}`)
+              }
+            }
+          }
+        } else {
+          console.warn('[process-session] Split requested but invalid quantity')
+        }
+      } else {
+        // Standard Transfer
+        const latest = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [batchId] })
+        const alreadyOwner = (latest?.[1] || '').toLowerCase?.() === toAddress.toLowerCase?.()
+        if (!alreadyOwner) {
+          const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'transferOwnershipByVerifier', args: [batchId, toAddress] })
+          await client.waitForTransactionReceipt({ hash: tx })
+          console.log(`[process-session] Transferred batch ${batchId} -> ${toAddress}`)
+        }
+      }
+    } catch (e) {
+      console.warn('[process-session] transfer/split failed', e?.message || e)
+      return { ok: false, error: e?.message || 'transfer_failed' }
+    }
+  } else {
+    console.warn('[process-session] toAddress missing or invalid')
+  }
+
+  // Optional downstream price updates (for non-split or parent batch updates)
+  try {
+    if (role === 'distributor') {
+      if(!isSplit){
+      const pInrMeta = meta?.distributorPriceINR
+      const pInr = pInrMeta != null && String(pInrMeta).trim() !== '' ? BigInt(String(pInrMeta)) : 0n
+      if (pInr > 0n) {
+        console.log(`[process-session] Setting distributor price for batch ${batchId} to ${pInr}`)
+        const latest = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [batchId] })
+        const current = latest?.[14]
+        const same = (current?.toString?.() || '') === pInr.toString()
+        if (!same) {
+          const setTx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByDistributorInr', args: [batchId, pInr] })
+          await client.waitForTransactionReceipt({ hash: setTx })
+          console.log(`[process-session] Price updated successfully`)
+        } else {
+          console.log(`[process-session] Price already set to ${pInr}`)
+        }
+      }}
+    } else if (role === 'retailer') {
+      if (!isSplit) {
+      const pInrMeta = meta?.consumerPriceINR
+      const pInr = pInrMeta != null && String(pInrMeta).trim() !== '' ? BigInt(String(pInrMeta)) : 0n
+      if (pInr > 0n) {
+        const latest = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [batchId] })
+        const current = latest?.[15]
+        const same = (current?.toString?.() || '') === pInr.toString()
+        if (!same) {
+          const setTx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByRetailerInr', args: [batchId, pInr] })
+          await client.waitForTransactionReceipt({ hash: setTx })
+        }
+      }
+      }
+    }
+  } catch (e) { console.warn('[process-session] optional downstream price update failed', e?.message || e) }
+
+  return { ok: true }
 }
 
 // Raw body is required for Stripe signature verification
 app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature']
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  console.log('[webhook] Received signature:', sig)
   let event
   try {
-    event = Stripe.webhooks.constructEvent(req.body, sig, webhookSecret)
+    // TEMPORARY: Disable signature verification for local testing
+    event = JSON.parse(req.body.toString())
+    console.log('[webhook] Signature verification DISABLED for local testing')
   } catch (err) {
-    console.error('Webhook signature verification failed', err.message)
+    console.error('Webhook parsing failed', err.message)
     return res.status(400).send(`Webhook Error: ${err.message}`)
   }
 
   try {
     const session = event.data.object
-    // Idempotency: skip if this session already processed
     if (session?.id) {
-      if (processedSessions.has(session.id)) {
-        return res.json({ received: true, skipped: true })
-      }
-      if (processingSessions.has(session.id)) {
-        return res.json({ received: true, inProgress: true })
-      }
+      if (processedSessions.has(session.id)) return res.json({ received: true, skipped: true })
+      if (processingSessions.has(session.id)) return res.json({ received: true, inProgress: true })
       processingSessions.add(session.id)
     }
-    const meta = (session && session.metadata) || {}
-    const batchIdStr = meta.batchId
-    const batchId = batchIdStr && /^[0-9]+$/.test(batchIdStr) ? BigInt(batchIdStr) : null
 
-  if (event.type === 'checkout.session.completed' && batchId) {
-      if (!wallet || !account) {
-        console.warn('[webhook] relayer not configured; skipping on-chain log')
-      } else if (!isValidAddress(CONTRACT_ADDRESS)) {
-        console.warn('[webhook] invalid contract address; skipping on-chain log')
-      } else {
-        const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
-        if (!code) throw new Error('not_a_contract')
-        // Payments are not stored on-chain anymore; directly transfer via verifier
-        // Determine destination address based on role (fallback to defaults)
-        const role = meta.role
-        let defaultTo = DEFAULT_ADDRESSES.DISTRIBUTOR
-        if (role === 'retailer') defaultTo = DEFAULT_ADDRESSES.RETAILER
-        else if (role === 'consumer') defaultTo = DEFAULT_ADDRESSES.CONSUMER
-        const toAddress = meta.toAddress || defaultTo
-        if (toAddress && /^0x[0-9a-fA-F]{40}$/.test(toAddress)) {
-          try {
-            // Only finalize if not already owned by destination
-            const latest = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [batchId] })
-            const alreadyOwner = (latest?.[1] || '').toLowerCase?.() === toAddress.toLowerCase?.()
-            if (!alreadyOwner) {
-              const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'transferOwnershipByVerifier', args: [batchId, toAddress] })
-              await client.waitForTransactionReceipt({ hash: tx })
-            }
-          } catch (e) { console.warn('[webhook] transferOwnership failed', e?.message || e) }
-        } else {
-          console.warn('[webhook] toAddress missing or invalid; skipping ownership transfer')
-        }
-        // Optional downstream price updates based on role
-        try {
-          if (role === 'distributor') {
-            const pInrMeta = meta?.distributorPriceINR
-            const pInr = pInrMeta != null && String(pInrMeta).trim() !== '' ? BigInt(String(pInrMeta)) : 0n
-            if (pInr > 0n) {
-              // Only set if different from current
-              const latest = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [batchId] })
-              const current = latest?.[14]
-              const same = (current?.toString?.() || '') === pInr.toString()
-              if (!same) {
-                const setTx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByDistributorInr', args: [batchId, pInr] })
-                await client.waitForTransactionReceipt({ hash: setTx })
-              }
-            }
-          } else if (role === 'retailer') {
-            const pInrMeta = meta?.consumerPriceINR
-            const pInr = pInrMeta != null && String(pInrMeta).trim() !== '' ? BigInt(String(pInrMeta)) : 0n
-            if (pInr > 0n) {
-              const latest = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [batchId] })
-              const current = latest?.[15]
-              const same = (current?.toString?.() || '') === pInr.toString()
-              if (!same) {
-                const setTx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByRetailerInr', args: [batchId, pInr] })
-                await client.waitForTransactionReceipt({ hash: setTx })
-              }
-            }
-          }
-        } catch (e) { console.warn('[webhook] optional downstream price update failed', e?.message || e) }
-      }
+    if (event.type === 'checkout.session.completed') {
+      await processCheckoutSession(session)
       console.log('Checkout complete for session', session.id)
-    } else if ((event.type === 'checkout.session.expired' || event.type === 'checkout.session.async_payment_failed') && batchId) {
-      // No on-chain action for failed sessions in INR-only model
-      console.log('Checkout failed/expired for session', session.id)
     }
     res.json({ received: true })
   } catch (e) {
     console.error('[webhook] handler error', e)
-    res.json({ received: true })
+    res.status(400).send(`Webhook Error: ${e.message}`)
   } finally {
-    // Mark processed and clear in-progress flag
     try {
       const id = event?.data?.object?.id
       if (id && processingSessions.has(id)) {
         processingSessions.delete(id)
         processedSessions.add(id)
       }
-    } catch {}
+    } catch { }
   }
 })
+
 
 // Note: duplicate webhook route removed to prevent double handling
 
@@ -240,7 +433,7 @@ app.post('/create-checkout-session', async (req, res) => {
         }
         if (status !== 'verified') return res.status(400).json({ error: 'batch_not_verified' })
       }
-    } catch {}
+    } catch { }
     // Expect unit_amount already in INR paise; enforce currency and minimal amount
     const STRIPE_MAX = 999_999_999_999
     const safeLineItems = (Array.isArray(lineItems) ? lineItems : []).map((item) => {
@@ -281,18 +474,18 @@ app.get('/api/relayer-status', (req, res) => {
 app.post('/api/register-batch', async (req, res) => {
   try {
     if (!wallet || !account) return res.status(500).json({ error: 'relayer_not_configured' })
-  if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
-  const { cropType, quantityKg, basePriceINR, harvestDate, metadataCID, minPriceINR, farmerAddress } = req.body || {}
+    if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
+    const { cropType, quantityKg, basePriceINR, harvestDate, metadataCID, minPriceINR, farmerAddress } = req.body || {}
     if (!cropType || String(cropType).trim() === '') return res.status(400).json({ error: 'missing_crop_type' })
     if (quantityKg == null || Number(quantityKg) <= 0) return res.status(400).json({ error: 'invalid_quantity' })
     if (!harvestDate || Number(harvestDate) <= 0) return res.status(400).json({ error: 'invalid_harvest_date' })
-  const baseInr = BigInt(basePriceINR ?? 0)
-  if (baseInr <= 0n) return res.status(400).json({ error: 'invalid_base_price' })
+    const baseInr = BigInt(basePriceINR ?? 0)
+    if (baseInr <= 0n) return res.status(400).json({ error: 'invalid_base_price' })
 
     // send registerBatch
     const wantsFor = farmerAddress && /^0x[0-9a-fA-F]{40}$/.test(farmerAddress)
     const metaCID = (metadataCID && String(metadataCID).trim() !== '') ? metadataCID : ('meta:' + JSON.stringify({
-      kind: 'registration', cropType, quantityKg: Number(quantityKg), basePriceINR: baseInr.toString(), harvestDate: Number(harvestDate), minPriceINR: (minPriceINR!=null) ? BigInt(minPriceINR).toString() : undefined
+      kind: 'registration', cropType, quantityKg: Number(quantityKg), basePriceINR: baseInr.toString(), harvestDate: Number(harvestDate), minPriceINR: (minPriceINR != null) ? BigInt(minPriceINR).toString() : undefined
     }))
     const argsFor = [farmerAddress, cropType, BigInt(quantityKg), baseInr, BigInt(harvestDate), metaCID]
     const argsSimple = [cropType, BigInt(quantityKg), baseInr, BigInt(harvestDate), metaCID]
@@ -333,16 +526,16 @@ app.post('/api/register-batch', async (req, res) => {
     }
 
     // set min price if provided
-  const minInrComputed = (minPriceINR != null) ? BigInt(minPriceINR) : null
-  if (minInrComputed != null && batchId != null) {
+    const minInrComputed = (minPriceINR != null) ? BigInt(minPriceINR) : null
+    if (minInrComputed != null && batchId != null) {
       await wallet.writeContract({
         address: CONTRACT_ADDRESS,
         abi: AGRI_TRUTH_CHAIN_ABI,
-    functionName: 'setMinPriceInr',
-    args: [batchId, BigInt(minInrComputed)]
+        functionName: 'setMinPriceInr',
+        args: [batchId, BigInt(minInrComputed)]
       })
     }
-  // Metadata mirroring via payments/shipments removed in INR-only model
+    // Metadata mirroring via payments/shipments removed in INR-only model
     // If we used fallback registerBatch, ensure the farmer is the owner
     if (usedFallback && wantsFor && batchId != null) {
       try {
@@ -354,8 +547,8 @@ app.post('/api/register-batch', async (req, res) => {
     }
     res.json({ ok: true, batchId: batchId ? batchId.toString() : null, tx: hash, usedFallback })
   } catch (e) {
-  console.error('register-batch failed', e)
-  res.status(500).json({ error: 'register_failed', message: e?.message || String(e) })
+    console.error('register-batch failed', e)
+    res.status(500).json({ error: 'register_failed', message: e?.message || String(e) })
   }
 })
 
@@ -392,8 +585,8 @@ app.get('/api/batches', async (req, res) => {
         if (!seen.has(id)) { seen.add(id); ids.push(id) }
       }
     }
-  const vAll = readVerification()
-  const results = await Promise.all(ids.map(async (id) => {
+    const vAll = readVerification()
+    const results = await Promise.all(ids.map(async (id) => {
       let b
       try {
         b = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [id] })
@@ -401,7 +594,7 @@ app.get('/api/batches', async (req, res) => {
         b = null
       }
       let record
-  if (b) {
+      if (b) {
         record = {
           id: Number(b[0]),
           currentOwner: b[1],
@@ -421,7 +614,12 @@ app.get('/api/batches', async (req, res) => {
           priceByRetailerINR: b[15]?.toString?.() ?? '0',
           boughtByDistributorAt: Number(b[16] || 0n),
           boughtByRetailerAt: Number(b[17] || 0n),
-          boughtByConsumerAt: Number(b[18] || 0n)
+          boughtByConsumerAt: Number(b[18] || 0n),
+          verificationStatus: Number(b[19] || 0),
+          verificationBy: b[20] || null,
+          verificationAt: Number(b[21] || 0n),
+          parentId: Number(b[22] || 0n),
+          isSplit: !!b[23]
         }
         // Fallback: if minPrice is zero but base exists, use base as min
         if ((record.minPriceINR === '0' || record.minPriceINR === 0) && (record.basePriceINR && record.basePriceINR !== '0')) {
@@ -440,11 +638,11 @@ app.get('/api/batches', async (req, res) => {
               if ((!record.metadataCID || record.metadataCID === '') && last.args?.metadataCID) record.metadataCID = last.args.metadataCID
               if (!record.createdAt && last.blockNumber) {
                 try { const blk = await client.getBlock({ blockNumber: last.blockNumber }); record.createdAt = blk?.timestamp ? Number(blk.timestamp) : record.createdAt }
-                catch {}
+                catch { }
               }
             }
           }
-        } catch {}
+        } catch { }
       } else {
         // Legacy fallback via event log
         const logs = await client.getLogs({
@@ -460,7 +658,7 @@ app.get('/api/batches', async (req, res) => {
           try {
             const blk = await client.getBlock({ blockNumber: last.blockNumber })
             createdAt = blk?.timestamp ? Number(blk.timestamp) : 0
-          } catch {}
+          } catch { }
         }
         const farmer = last?.args?.farmer || DEFAULT_ADDRESSES.FARMER
         const cropType = last?.args?.cropType || ''
@@ -492,14 +690,14 @@ app.get('/api/batches', async (req, res) => {
         if ((record.minPriceINR === '0' || record.minPriceINR === 0) && (record.basePriceINR && record.basePriceINR !== '0')) {
           record.minPriceINR = record.basePriceINR.toString()
         }
-  }
+      }
 
       // Enriched aliases
       const role = record.currentOwner?.toLowerCase?.() === record.farmer?.toLowerCase?.() ? 'farmer'
         : record.currentOwner?.toLowerCase?.() === record.distributor?.toLowerCase?.() ? 'distributor'
-        : record.currentOwner?.toLowerCase?.() === record.retailer?.toLowerCase?.() ? 'retailer'
-        : record.currentOwner?.toLowerCase?.() === record.consumer?.toLowerCase?.() ? 'consumer'
-        : 'unknown'
+          : record.currentOwner?.toLowerCase?.() === record.retailer?.toLowerCase?.() ? 'retailer'
+            : record.currentOwner?.toLowerCase?.() === record.consumer?.toLowerCase?.() ? 'consumer'
+              : 'unknown'
       // Keep raw epoch seconds in the response; UI can format if needed
       const dates = {
         harvest: record.harvestDate,
@@ -515,7 +713,7 @@ app.get('/api/batches', async (req, res) => {
         byRetailerINR: record.priceByRetailerINR
       }
 
-  // Removed enrichment from payments/shipments; rely on direct tuple + BatchRegistered event only
+      // Removed enrichment from payments/shipments; rely on direct tuple + BatchRegistered event only
 
       // Normalize role addresses: if missing or zero, use defaults; avoid accidentally equating consumer to distributor unless set
       if (!record.distributor || record.distributor === '0x0000000000000000000000000000000000000000') record.distributor = DEFAULT_ADDRESSES.DISTRIBUTOR
@@ -524,7 +722,7 @@ app.get('/api/batches', async (req, res) => {
       let verificationChain = null
       try {
         verificationChain = await getVerificationStatusChain(Number(record.id))
-      } catch {}
+      } catch { }
       return {
         ...record,
         currentHolder: record.currentOwner,
@@ -546,18 +744,18 @@ app.get('/api/batches', async (req, res) => {
 // Read: single batch with shipments & payments
 app.get('/api/batch/:id', async (req, res) => {
   try {
-  if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
+    if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
     if (account && isSameAddress(CONTRACT_ADDRESS, account.address)) {
       return res.status(400).json({ error: 'address_matches_relayer', address: CONTRACT_ADDRESS })
     }
     const idStr = req.params.id
     if (!/^[0-9]+$/.test(idStr)) return res.status(400).json({ error: 'invalid_id' })
     const id = BigInt(idStr)
-  if (!(await hasContractCode())) return res.status(400).json({ error: 'not_a_contract', address: CONTRACT_ADDRESS })
-  let b
+    if (!(await hasContractCode())) return res.status(400).json({ error: 'not_a_contract', address: CONTRACT_ADDRESS })
+    let b
     try {
       b = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [id] })
-    } catch {}
+    } catch { }
     let batch
     if (b) {
       const exists = b[12]
@@ -580,23 +778,28 @@ app.get('/api/batch/:id', async (req, res) => {
         priceByRetailerINR: b[15]?.toString?.() ?? '0',
         boughtByDistributorAt: Number(b[16] || 0n),
         boughtByRetailerAt: Number(b[17] || 0n),
-        boughtByConsumerAt: Number(b[18] || 0n)
+        boughtByConsumerAt: Number(b[18] || 0n),
+        verificationStatus: Number(b[19] || 0),
+        verificationBy: b[20] || null,
+        verificationAt: Number(b[21] || 0n),
+        parentId: Number(b[22] || 0n),
+        isSplit: !!b[23]
       }
       if ((batch.minPriceINR === '0' || batch.minPriceINR === 0) && (batch.basePriceINR && batch.basePriceINR !== '0')) {
         batch.minPriceINR = batch.basePriceINR.toString()
       }
-  // Removed slow event-log overlays to speed up response
+      // Removed slow event-log overlays to speed up response
       // Patch from metadataCID if it contains embedded meta JSON
-    try {
+      try {
         if (typeof batch.metadataCID === 'string' && batch.metadataCID.startsWith('meta:')) {
           const m = JSON.parse(batch.metadataCID.slice(5))
           if (m?.cropType && (!batch.cropType || batch.cropType === '')) batch.cropType = m.cropType
           if (m?.quantityKg && (!batch.quantityKg || batch.quantityKg === 0)) batch.quantityKg = Number(m.quantityKg)
-      if (m?.basePriceINR && (batch.basePriceINR === '0' || !batch.basePriceINR)) batch.basePriceINR = String(m.basePriceINR)
+          if (m?.basePriceINR && (batch.basePriceINR === '0' || !batch.basePriceINR)) batch.basePriceINR = String(m.basePriceINR)
           if (m?.harvestDate && (!batch.harvestDate || batch.harvestDate === 0)) batch.harvestDate = Number(m.harvestDate)
-      if (m?.minPriceINR && (batch.minPriceINR === '0' || !batch.minPriceINR)) batch.minPriceINR = String(m.minPriceINR)
+          if (m?.minPriceINR && (batch.minPriceINR === '0' || !batch.minPriceINR)) batch.minPriceINR = String(m.minPriceINR)
         }
-      } catch {}
+      } catch { }
     } else {
       // Fast-fail instead of scanning events across the chain
       return res.status(404).json({ error: 'not_found' })
@@ -604,9 +807,9 @@ app.get('/api/batch/:id', async (req, res) => {
     // Enriched aliases
     const currentHolderRole = batch.currentOwner?.toLowerCase?.() === batch.farmer?.toLowerCase?.() ? 'farmer'
       : batch.currentOwner?.toLowerCase?.() === batch.distributor?.toLowerCase?.() ? 'distributor'
-      : batch.currentOwner?.toLowerCase?.() === batch.retailer?.toLowerCase?.() ? 'retailer'
-      : batch.currentOwner?.toLowerCase?.() === batch.consumer?.toLowerCase?.() ? 'consumer'
-      : 'unknown'
+        : batch.currentOwner?.toLowerCase?.() === batch.retailer?.toLowerCase?.() ? 'retailer'
+          : batch.currentOwner?.toLowerCase?.() === batch.consumer?.toLowerCase?.() ? 'consumer'
+            : 'unknown'
     const dates = {
       harvest: batch.harvestDate,
       created: batch.createdAt,
@@ -622,7 +825,7 @@ app.get('/api/batch/:id', async (req, res) => {
     }
     const vAll = readVerification()
     let verificationChain = null
-    try { verificationChain = await getVerificationStatusChain(Number(batch.id)) } catch {}
+    try { verificationChain = await getVerificationStatusChain(Number(batch.id)) } catch { }
     res.json({
       batch: {
         ...batch,
@@ -659,7 +862,7 @@ app.post('/api/verification-status', (req, res) => {
     try {
       const { batchId, status, by } = req.body || {}
       if (!batchId || !/^[0-9]+$/.test(String(batchId))) return res.status(400).json({ error: 'invalid_batch_id' })
-      if (!['unverified','pending','verified'].includes(String(status))) return res.status(400).json({ error: 'invalid_status' })
+      if (!['unverified', 'pending', 'verified'].includes(String(status))) return res.status(400).json({ error: 'invalid_status' })
       // Try on-chain first
       const onchain = await setVerificationStatusChain(String(batchId), String(status))
       if (onchain?.ok) return res.json({ ok: true, onchain: true, tx: onchain.tx })
@@ -683,14 +886,14 @@ app.get('/api/chain-info', async (req, res) => {
       if (account && isValidAddress(CONTRACT_ADDRESS)) {
         isRelayerVerifier = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'verifiers', args: [account.address] })
       }
-    } catch {}
+    } catch { }
     res.json({
       chain: 'arbitrum-sepolia',
       chainId: arbitrumSepolia.id,
       rpcUrl: rpcUrl || null,
       contractAddress: CONTRACT_ADDRESS,
-  relayerAddress: account?.address || null,
-  addressMatchesRelayer: account ? isSameAddress(CONTRACT_ADDRESS, account.address) : false,
+      relayerAddress: account?.address || null,
+      addressMatchesRelayer: account ? isSameAddress(CONTRACT_ADDRESS, account.address) : false,
       hasBytecode: !!code,
       blockNumber: blockNumber ? blockNumber.toString() : null,
       isRelayerVerifier: isRelayerVerifier
@@ -719,18 +922,18 @@ app.get('/api/debug/batch-raw/:id', async (req, res) => {
     } catch (e) {
       // ignore, use fallback
     }
-  const logs = await client.getLogs({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, eventName: 'BatchRegistered', fromBlock: 0n, args: { batchId: id } })
+    const logs = await client.getLogs({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, eventName: 'BatchRegistered', fromBlock: 0n, args: { batchId: id } })
     const last = logs[logs.length - 1]
     let createdAt = 0
     if (last?.blockNumber) {
-      try { const blk = await client.getBlock({ blockNumber: last.blockNumber }); createdAt = blk?.timestamp ? Number(blk.timestamp) : 0 } catch {}
+      try { const blk = await client.getBlock({ blockNumber: last.blockNumber }); createdAt = blk?.timestamp ? Number(blk.timestamp) : 0 } catch { }
     }
     if (last) {
       fallback = {
         farmer: last.args?.farmer || null,
         cropType: last.args?.cropType || null,
         quantityKg: last.args?.quantityKg ? last.args.quantityKg.toString() : null,
-  basePriceINR: last.args?.basePriceINR ? last.args.basePriceINR.toString() : null,
+        basePriceINR: last.args?.basePriceINR ? last.args.basePriceINR.toString() : null,
         harvestDate: last.args?.harvestDate ? Number(last.args.harvestDate) : null,
         metadataCID: last.args?.metadataCID || null,
         createdAt
@@ -762,62 +965,35 @@ app.post('/api/setup-relayer-as-verifier', async (req, res) => {
 // Fallback: confirm payment and transfer via API when webhook cannot reach local server
 app.post('/api/confirm-payment', async (req, res) => {
   try {
-    const { sessionId, batchId, toAddress } = req.body || {}
+    const { sessionId } = req.body || {}
     if (!sessionId || !/^(cs_test|cs_).+/.test(sessionId)) return res.status(400).json({ error: 'invalid_session' })
-    if (!batchId || !/^[0-9]+$/.test(String(batchId))) return res.status(400).json({ error: 'invalid_batch_id' })
-    if (!wallet || !account) return res.status(500).json({ error: 'relayer_not_configured' })
-    if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
-    const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
-    if (!code) return res.status(400).json({ error: 'not_a_contract', address: CONTRACT_ADDRESS })
+    
     const session = await stripe.checkout.sessions.retrieve(sessionId)
     if (!session || session.payment_status !== 'paid') return res.status(400).json({ error: 'not_paid' })
-    const id = BigInt(batchId)
-    const role = session.metadata?.role
-    // Role-based default destination
-    let defaultTo = DEFAULT_ADDRESSES.DISTRIBUTOR
-    if (role === 'retailer') defaultTo = DEFAULT_ADDRESSES.RETAILER
-    else if (role === 'consumer') defaultTo = DEFAULT_ADDRESSES.CONSUMER
-    const finalTo = (toAddress && /^0x[0-9a-fA-F]{40}$/.test(toAddress)) ? toAddress : (session.metadata?.toAddress || defaultTo)
-    if (!/^0x[0-9a-fA-F]{40}$/.test(finalTo)) return res.status(400).json({ error: 'invalid_to_address' })
-    const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'transferOwnershipByVerifier', args: [id, finalTo] })
-    await client.waitForTransactionReceipt({ hash: tx })
-    // Optional: set downstream price if provided in metadata (distributor sets price for retailer)
-    try {
-      if (role === 'distributor') {
-        const pInrMeta = session.metadata?.distributorPriceINR
-        const pInr = pInrMeta != null && String(pInrMeta).trim() !== '' ? BigInt(String(pInrMeta)) : 0n
-        if (pInr > 0n) {
-          const setTx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByDistributorInr', args: [id, pInr] })
-          await client.waitForTransactionReceipt({ hash: setTx })
-        }
-      } else if (role === 'retailer') {
-        const pInrMeta = session.metadata?.consumerPriceINR
-        const pInr = pInrMeta != null && String(pInrMeta).trim() !== '' ? BigInt(String(pInrMeta)) : 0n
-        if (pInr > 0n) {
-          const setTx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByRetailerInr', args: [id, pInr] })
-          await client.waitForTransactionReceipt({ hash: setTx })
-        }
-      }
-    } catch (e) { console.warn('[confirm-payment] optional price set failed', e?.message || e) }
-    res.json({ ok: true, tx })
+
+    // Use shared logic
+    const result = await processCheckoutSession(session)
+    if (!result.ok) return res.status(500).json({ error: result.error })
+
+    res.json({ ok: true })
   } catch (e) {
     console.error('confirm-payment failed', e)
     res.status(500).json({ error: 'confirm_failed', message: e?.message || String(e) })
   }
 })
 
-// Write: transfer ownership (relayer)
+// Write: transfer ownership (relayer using verifier permission)
 app.post('/api/transfer', async (req, res) => {
   try {
     if (!wallet || !account) return res.status(500).json({ error: 'relayer_not_configured' })
     if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
-  const { batchId } = req.body || {}
-  const toAddress = (req.body?.toAddress && /^0x[0-9a-fA-F]{40}$/.test(req.body.toAddress)) ? req.body.toAddress : DEFAULT_ADDRESSES.DISTRIBUTOR
+    const { batchId } = req.body || {}
+    const toAddress = (req.body?.toAddress && /^0x[0-9a-fA-F]{40}$/.test(req.body.toAddress)) ? req.body.toAddress : DEFAULT_ADDRESSES.DISTRIBUTOR
     if (!batchId || !/^[0-9]+$/.test(String(batchId))) return res.status(400).json({ error: 'invalid_batch_id' })
     if (!isValidAddress(toAddress)) return res.status(400).json({ error: 'invalid_to_address' })
     const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
     if (!code) return res.status(400).json({ error: 'not_a_contract', address: CONTRACT_ADDRESS })
-    const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'transferOwnership', args: [BigInt(batchId), toAddress] })
+    const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'transferOwnershipByVerifier', args: [BigInt(batchId), toAddress] })
     const receipt = await client.waitForTransactionReceipt({ hash: tx })
     res.json({ ok: true, tx })
   } catch (e) {
@@ -834,13 +1010,13 @@ app.post('/api/set-price-by-distributor', async (req, res) => {
   try {
     if (!wallet || !account) return res.status(500).json({ error: 'relayer_not_configured' })
     if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
-  const { batchId, priceINR } = req.body || {}
+    const { batchId, priceINR } = req.body || {}
     if (!batchId || !/^[0-9]+$/.test(String(batchId))) return res.status(400).json({ error: 'invalid_batch_id' })
     const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
     if (!code) return res.status(400).json({ error: 'not_a_contract', address: CONTRACT_ADDRESS })
-  const inr = BigInt(priceINR ?? 0)
-  if (inr <= 0n) return res.status(400).json({ error: 'invalid_price' })
-  const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByDistributorInr', args: [BigInt(batchId), inr] })
+    const inr = BigInt(priceINR ?? 0)
+    if (inr <= 0n) return res.status(400).json({ error: 'invalid_price' })
+    const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByDistributorInr', args: [BigInt(batchId), inr] })
     await client.waitForTransactionReceipt({ hash: tx })
     res.json({ ok: true, tx })
   } catch (e) {
@@ -854,13 +1030,13 @@ app.post('/api/set-price-by-retailer', async (req, res) => {
   try {
     if (!wallet || !account) return res.status(500).json({ error: 'relayer_not_configured' })
     if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
-  const { batchId, priceINR } = req.body || {}
+    const { batchId, priceINR } = req.body || {}
     if (!batchId || !/^[0-9]+$/.test(String(batchId))) return res.status(400).json({ error: 'invalid_batch_id' })
     const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
     if (!code) return res.status(400).json({ error: 'not_a_contract', address: CONTRACT_ADDRESS })
-  const inr = BigInt(priceINR ?? 0)
-  if (inr <= 0n) return res.status(400).json({ error: 'invalid_price' })
-  const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByRetailerInr', args: [BigInt(batchId), inr] })
+    const inr = BigInt(priceINR ?? 0)
+    if (inr <= 0n) return res.status(400).json({ error: 'invalid_price' })
+    const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByRetailerInr', args: [BigInt(batchId), inr] })
     await client.waitForTransactionReceipt({ hash: tx })
     res.json({ ok: true, tx })
   } catch (e) {

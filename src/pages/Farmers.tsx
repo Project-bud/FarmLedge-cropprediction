@@ -28,7 +28,7 @@ const Farmers = () => {
     if (!form.harvestDate) { alert(t('farmers.errors.chooseHarvest')); return }
       const farmerAddress = form.farmerAddress?.trim() || DEFAULT_ADDRESSES.FARMER
     if (!isHexAddress(farmerAddress)) { alert(t('farmers.errors.enterEOA')); return }
-      const basePriceINR = Math.round(basePricePerKg * quantityKg) // total ₹ for batch
+      const basePriceINR = Math.round(basePricePerKg) // total ₹ for batch
       const minPriceINR = basePriceINR // simple default; can add UI later
       const harvestDateSec = Math.floor(new Date(form.harvestDate).getTime() / 1000)
       const res = await fetch('/api/register-batch', {
