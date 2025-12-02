@@ -49,7 +49,7 @@ const Retailers = () => {
         const isComplete = params.get('complete') === '1';
         const sessionId = params.get('session_id');
 
-        toast.info("Payment successful! Processing...");
+        toast.info(t('retailers.messages.paymentSuccess'));
 
         if (sessionId) {
           try {
@@ -90,7 +90,7 @@ const Retailers = () => {
           }
         } catch (e) { console.error("Failed to find new batch", e); }
 
-        toast.success("Payment processed. Your batch will appear shortly.");
+        toast.success(t('retailers.messages.paymentProcessed'));
         window.history.replaceState({}, '', window.location.pathname);
         fetchBatches();
       } else if (params.get('canceled') === '1') {
@@ -98,7 +98,7 @@ const Retailers = () => {
       }
     };
     checkPayment();
-  }, [user]);
+  }, [user, t]);
 
   const myInventory = useMemo(() => (batches || []).filter((b:any) => b.currentOwner?.toLowerCase?.() === (b.distributor||"").toLowerCase?.()), [batches]);
 
@@ -132,11 +132,11 @@ const Retailers = () => {
   const validateAddress = (value: string) => {
     const trimmed = value?.trim();
     if (!trimmed) {
-      setAddrError("Address is required");
+      setAddrError(t('retailers.messages.addrRequired'));
       return false;
     }
     if (!isHexAddress(trimmed)) {
-      setAddrError("Invalid address format");
+      setAddrError(t('retailers.messages.addrInvalid'));
       return false;
     }
     if (addrError) setAddrError("");
@@ -147,16 +147,16 @@ const Retailers = () => {
     setMsg("");
     if (!user) { setMsg(t('retailers.messages.login')); return; }
     if (!selectedBatch) { setMsg(t('retailers.messages.select')); return; }
-    if (!buyQuantity || Number(buyQuantity) <= 0) { setMsg("Enter a valid quantity"); return; }
-    if (!selectedBatchData) { setMsg("Select a valid batch"); return; }
-    if (Number(buyQuantity) > selectedBatchData.quantityKg) { setMsg("Quantity exceeds available"); return; }
-    if (!consumerPriceInr || Number(consumerPriceInr) <= 0) { setMsg("Set your consumer price"); return; }
+    if (!buyQuantity || Number(buyQuantity) <= 0) { setMsg(t('retailers.messages.enterValidQty')); return; }
+    if (!selectedBatchData) { setMsg(t('retailers.messages.selectValid')); return; }
+    if (Number(buyQuantity) > selectedBatchData.quantityKg) { setMsg(t('retailers.messages.qtyExceeds')); return; }
+    if (!consumerPriceInr || Number(consumerPriceInr) <= 0) { setMsg(t('retailers.messages.setConsumerPrice')); return; }
 
     const finalBuyer = buyerAddress?.trim() ? buyerAddress : DEFAULT_ADDRESSES.RETAILER;
     if (!validateAddress(finalBuyer)) { return; }
 
     const priceInr = totalPrice;
-    if (priceInr <= 0) { setMsg("Unable to calculate total price"); return; }
+    if (priceInr <= 0) { setMsg(t('retailers.messages.calcError')); return; }
 
     const totalResalePrice = consumerPriceInr ? (Number(consumerPriceInr)).toFixed(0) : '0';
 
@@ -198,8 +198,8 @@ const Retailers = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <h2 className="text-xl font-semibold">Processing Payment...</h2>
-        <p className="text-muted-foreground">Please wait while we confirm your transaction.</p>
+        <h2 className="text-xl font-semibold">{t('retailers.purchase.processing')}</h2>
+        <p className="text-muted-foreground">{t('retailers.purchase.wait')}</p>
       </div>
     );
   }
@@ -211,11 +211,11 @@ const Retailers = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-serif font-bold text-slate-900">{t('retailers.title')}</h1>
-            <p className="text-slate-500 mt-1">Stock your shelves with verified produce.</p>
+            <p className="text-slate-500 mt-1">{t('retailers.subtitle')}</p>
           </div>
           <Button variant="outline" onClick={fetchBatches} className="gap-2">
             <RefreshCw className="w-4 h-4" />
-            Refresh Inventory
+            {t('retailers.refreshInventory')}
           </Button>
         </div>
 
@@ -226,17 +226,17 @@ const Retailers = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Store className="w-5 h-5 text-amber-600" />
-                  Distributor Listings
+                  {t('retailers.marketplace.title')}
                 </CardTitle>
-                <CardDescription>Batches available for retail purchase.</CardDescription>
+                <CardDescription>{t('retailers.marketplace.description')}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 p-0 overflow-hidden">
                 <ScrollArea className="h-full">
                   {myInventory.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-slate-400 p-8 text-center">
                       <Store className="w-12 h-12 mb-3 opacity-20" />
-                      <p>No batches available from distributors.</p>
-                      <p className="text-sm">Check back later or refresh.</p>
+                      <p>{t('retailers.marketplace.noBatches')}</p>
+                      <p className="text-sm">{t('retailers.marketplace.checkBack')}</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-100">
@@ -260,7 +260,7 @@ const Retailers = () => {
                                   <Badge variant="secondary" className="text-xs font-normal">{b.cropType}</Badge>
                                 </div>
                                 <div className="text-sm text-slate-500 mt-1">
-                                  {b.quantityKg} kg available • ₹{price}/kg
+                                  {b.quantityKg} kg {t('retailers.marketplace.available')} • ₹{price}/kg
                                 </div>
                               </div>
                             </div>
@@ -270,7 +270,7 @@ const Retailers = () => {
                                 variant={isSelected ? "default" : "ghost"}
                                 className={isSelected ? "bg-amber-600 hover:bg-amber-700" : ""}
                               >
-                                {isSelected ? "Selected" : "Select"}
+                                {isSelected ? t('retailers.marketplace.selected') : t('retailers.marketplace.select')}
                               </Button>
                             </div>
                           </div>
@@ -289,28 +289,28 @@ const Retailers = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingBag className="w-5 h-5 text-amber-600" />
-                  Purchase Details
+                  {t('retailers.purchase.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {!selectedBatch ? (
                   <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border border-dashed">
                     <ArrowRight className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">Select a batch to purchase.</p>
+                    <p className="text-sm">{t('retailers.purchase.selectPrompt')}</p>
                   </div>
                 ) : (
                   <>
                     <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Selected Batch</span>
+                        <span className="text-slate-500">{t('retailers.purchase.selectedBatch')}</span>
                         <span className="font-mono font-medium">#{selectedBatch}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Available Qty</span>
+                        <span className="text-slate-500">{t('retailers.purchase.availableQty')}</span>
                         <span className="font-medium">{selectedBatchData?.quantityKg} kg</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Distributor Price</span>
+                        <span className="text-slate-500">{t('retailers.purchase.distributorPrice')}</span>
                         <span className="font-medium">₹{pricePerKg.toFixed(2)}/kg</span>
                       </div>
                     </div>
@@ -323,12 +323,12 @@ const Retailers = () => {
                           onCheckedChange={(checked) => setCompleteBatch(checked as boolean)}
                         />
                         <Label htmlFor="completeBatch" className="cursor-pointer text-sm font-medium">
-                          Buy Full Batch
+                          {t('retailers.purchase.buyFullBatch')}
                         </Label>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Quantity (kg)</Label>
+                        <Label>{t('retailers.purchase.quantity')}</Label>
                         <Input
                           type="number"
                           value={buyQuantity}
@@ -341,23 +341,23 @@ const Retailers = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>{t('retailers.setConsumerPrice')} (₹/kg)</Label>
+                        <Label>{t('retailers.purchase.consumerPrice')}</Label>
                         <Input
                           type="number"
                           value={consumerPriceInr}
                           onChange={(e) => setConsumerPriceInr(e.target.value)}
-                          placeholder="Price for consumer"
+                          placeholder={t('retailers.purchase.setPrice')}
                           min={pricePerKg}
                         />
                         <p className="text-[10px] text-slate-400">
-                          Must be higher than ₹{pricePerKg.toFixed(2)}
+                          {t('retailers.purchase.mustBeHigher')} ₹{pricePerKg.toFixed(2)}
                         </p>
                       </div>
 
                       <Separator />
 
                       <div className="flex justify-between items-end">
-                        <span className="text-sm font-medium text-slate-700">Total Cost</span>
+                        <span className="text-sm font-medium text-slate-700">{t('retailers.purchase.totalCost')}</span>
                         <span className="text-2xl font-bold text-slate-900">₹{totalPrice.toLocaleString()}</span>
                       </div>
 
@@ -374,10 +374,10 @@ const Retailers = () => {
                         disabled={paying || !buyQuantity || !consumerPriceInr || Number(consumerPriceInr) <= 0}
                       >
                         {paying ? (
-                          <>Processing...</>
+                          <>{t('retailers.purchase.processing')}</>
                         ) : (
                           <>
-                            Pay & Add to Inventory
+                            {t('retailers.purchase.payAndAdd')}
                             <ArrowRight className="w-4 h-4 ml-2" />
                           </>
                         )}
@@ -386,7 +386,7 @@ const Retailers = () => {
 
                     <div className="pt-4 border-t">
                       <div className="space-y-2">
-                        <Label className="text-xs text-slate-500">Buyer Wallet Address (For Testing)</Label>
+                        <Label className="text-xs text-slate-500">{t('retailers.purchase.buyerWallet')}</Label>
                         <Input
                           className="h-8 text-xs font-mono"
                           placeholder="0x..."
@@ -405,7 +405,7 @@ const Retailers = () => {
             </Card>
             
             <div className="bg-slate-100 p-4 rounded-lg border border-slate-200">
-              <h4 className="font-semibold text-sm mb-2 text-slate-700">Dev Tools</h4>
+              <h4 className="font-semibold text-sm mb-2 text-slate-700">{t('retailers.purchase.devTools')}</h4>
               <TestingAddresses />
             </div>
           </div>

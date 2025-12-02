@@ -567,6 +567,27 @@ app.get('/api/batches', async (req, res) => {
       }
     }
 
+    // Filter by farmer if requested
+    const farmerFilter = req.query.farmer
+    if (farmerFilter && /^0x[0-9a-fA-F]{40}$/.test(farmerFilter)) {
+      // We need to filter IDs where the farmer matches.
+      // Since we can't efficiently check every batch on-chain, we rely on BatchRegistered events.
+      // This is an optimization: only return IDs that were registered by this farmer.
+      const logs = await client.getLogs({
+        address: CONTRACT_ADDRESS,
+        abi: AGRI_TRUTH_CHAIN_ABI,
+        eventName: 'BatchRegistered',
+        fromBlock: 0n,
+        args: { farmer: farmerFilter }
+      })
+      const farmerIds = new Set()
+      for (const log of logs) {
+        if (log.args?.batchId != null) farmerIds.add(log.args.batchId)
+      }
+      // Intersect with all IDs (in case getAllBatchIds returns more/less or for consistency)
+      ids = ids.filter(id => farmerIds.has(id))
+    }
+
     // Support pagination
     let idsArray = [...ids]
     // Sort descending (newest first) assuming sequential IDs

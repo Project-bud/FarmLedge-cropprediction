@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { getAvailableCrops, getSeasonalityFactor, fetchRecentPrice } from "@/lib/pricePrediction";
 import TestingAddresses from "@/components/TestingAddresses";
 import { DEFAULT_ADDRESSES, isHexAddress } from "@/lib/addresses";
 import { 
@@ -18,6 +21,13 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
   Sprout, 
   Tractor, 
   Scale, 
@@ -27,15 +37,70 @@ import {
   Search,
   ArrowUpRight
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { 
+  ChevronLeft, 
+  ChevronRight 
+} from "lucide-react";
 
 const Farmers = () => {
   const [form, setForm] = useState<{ cropType: string; quantityKg: string; basePricePerKg: string; harvestDate: string; farmerAddress: string }>({ cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", farmerAddress: DEFAULT_ADDRESSES.FARMER as string });
-  const [batches, setBatches] = useState<any[]>([]); // TODO: load from chain
+  const [page, setPage] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const nav = useNavigate();
   const { t } = useTranslation();
+
+  const [suggestedPrice, setSuggestedPrice] = useState<string | null>(null);
+  const availableCrops = getAvailableCrops();
+
+  // Fetch batches with pagination and filtering
+  const { data: batchesData, isLoading, refetch } = useQuery({
+    queryKey: ['batches', form.farmerAddress, page],
+    queryFn: async () => {
+      const res = await fetch(`/api/batches?limit=5&page=${page}&farmer=${form.farmerAddress}`);
+      if (!res.ok) throw new Error('Failed to fetch batches');
+      return res.json();
+    },
+    enabled: !!form.farmerAddress && isHexAddress(form.farmerAddress)
+  });
+
+  const batches = batchesData?.batches || [];
+  const totalBatches = batchesData?.total || 0;
+  const totalPages = Math.ceil(totalBatches / 5);
+
+  useEffect(() => {
+    const updateSuggestion = async () => {
+      if (!form.cropType) {
+        setSuggestedPrice(null);
+        return;
+      }
+
+      // Check if entered crop matches one of our known crops (case insensitive)
+      const matchedCrop = availableCrops.find(c => c.toLowerCase() === form.cropType.toLowerCase());
+      
+      if (matchedCrop) {
+        try {
+          const factor = getSeasonalityFactor(matchedCrop);
+          const recentPriceQuintal = await fetchRecentPrice(matchedCrop);
+          
+          if (recentPriceQuintal) {
+            const pricePerKg = (recentPriceQuintal / 100) * factor;
+            setSuggestedPrice(pricePerKg.toFixed(2));
+          } else {
+            setSuggestedPrice(null);
+          }
+        } catch (e) {
+          console.error("Prediction error", e);
+          setSuggestedPrice(null);
+        }
+      } else {
+        setSuggestedPrice(null);
+      }
+    };
+
+    const timer = setTimeout(updateSuggestion, 500); // Debounce
+    return () => clearTimeout(timer);
+  }, [form.cropType]);
 
   const register = async () => {
     try {
@@ -82,21 +147,12 @@ const Farmers = () => {
       if (!data.batchId || !/^[0-9]+$/.test(data.batchId)) {
         toast.error(t('farmers.errors.registeredNoId'))
       } else {
-        const newItem = {
-          batchId: data.batchId,
-          cropType: form.cropType,
-          quantityKg,
-          basePricePerKg,
-          harvestDate: form.harvestDate,
-          farmer: 'you',
-          owner: 'you',
-        }
-        setBatches(prev => [newItem, ...prev])
         toast.success(`Batch #${data.batchId} registered successfully!`)
+        refetch(); // Refresh list
         // Navigate to details for immediate feedback
-        nav(`/batch?id=${encodeURIComponent(newItem.batchId)}`)
+        nav(`/batch?id=${encodeURIComponent(data.batchId)}`)
       }
-      setForm({ cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", farmerAddress: DEFAULT_ADDRESSES.FARMER });
+      setForm({ ...form, cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "" });
     } catch (e: any) { 
       console.error(e); 
       toast.error(`${t('farmers.errors.registerFailed')}${e?.message ? `: ${e.message}` : ''}`); 
@@ -105,10 +161,10 @@ const Farmers = () => {
     }
   };
 
-  // Calculate stats
-  const totalBatches = batches.length;
-  const totalVolume = batches.reduce((acc, b) => acc + Number(b.quantityKg), 0);
-  const totalRevenue = batches.reduce((acc, b) => acc + (Number(b.quantityKg) * Number(b.basePricePerKg)), 0);
+  // Calculate stats (approximate based on current view or total if available)
+  // Note: Total volume/revenue would require a separate aggregate API call for accuracy
+  const totalVolume = batches.reduce((acc: number, b: any) => acc + Number(b.quantityKg), 0);
+  const totalRevenue = batches.reduce((acc: number, b: any) => acc + (Number(b.quantityKg) * Number(b.basePriceINR || 0)), 0);
 
   return (
     <div className="min-h-screen bg-slate-50/50 font-sans">
@@ -133,7 +189,7 @@ const Farmers = () => {
                 <Sprout className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">Total Batches</p>
+                <p className="text-sm font-medium text-slate-500">{t('farmers.stats.totalBatches')}</p>
                 <h3 className="text-2xl font-bold text-slate-900">{totalBatches}</h3>
               </div>
             </CardContent>
@@ -144,7 +200,7 @@ const Farmers = () => {
                 <Scale className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">Total Volume</p>
+                <p className="text-sm font-medium text-slate-500">{t('farmers.stats.totalVolume')}</p>
                 <h3 className="text-2xl font-bold text-slate-900">{totalVolume} kg</h3>
               </div>
             </CardContent>
@@ -155,7 +211,7 @@ const Farmers = () => {
                 <IndianRupee className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">Est. Revenue</p>
+                <p className="text-sm font-medium text-slate-500">{t('farmers.stats.estRevenue')}</p>
                 <h3 className="text-2xl font-bold text-slate-900">₹{totalRevenue.toLocaleString()}</h3>
               </div>
             </CardContent>
@@ -169,21 +225,27 @@ const Farmers = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="w-5 h-5 text-emerald-600" />
-                  Register Harvest
+                  {t('farmers.registerHarvest')}
                 </CardTitle>
-                <CardDescription>Create a new digital twin for your produce.</CardDescription>
+                <CardDescription>{t('farmers.createDigitalTwin')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>{t('farmers.form.cropType')}</Label>
                   <div className="relative">
                     <Sprout className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                      className="pl-9" 
-                      placeholder="e.g. Wheat, Rice, Cotton"
-                      value={form.cropType} 
-                      onChange={(e) => setForm({ ...form, cropType: e.target.value })} 
+                    <Input
+                      className="pl-9"
+                      list="crop-suggestions"
+                      placeholder={t('farmers.form.cropType')}
+                      value={form.cropType}
+                      onChange={(e) => setForm({ ...form, cropType: e.target.value })}
                     />
+                    <datalist id="crop-suggestions">
+                      {availableCrops.map(crop => (
+                        <option key={crop} value={crop} />
+                      ))}
+                    </datalist>
                   </div>
                 </div>
                 
@@ -213,6 +275,11 @@ const Farmers = () => {
                         onChange={(e) => setForm({ ...form, basePricePerKg: e.target.value })} 
                       />
                     </div>
+                    {suggestedPrice && (
+                      <p className="text-xs text-emerald-600 font-medium animate-in fade-in slide-in-from-top-1">
+                        Suggested: ₹{suggestedPrice} / kg
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -235,9 +302,12 @@ const Farmers = () => {
                     className="font-mono text-xs" 
                     placeholder="0x..." 
                     value={form.farmerAddress} 
-                    onChange={(e) => setForm({ ...form, farmerAddress: e.target.value })} 
+                    onChange={(e) => {
+                      setForm({ ...form, farmerAddress: e.target.value });
+                      setPage(1); // Reset to first page on address change
+                    }} 
                   />
-                  <p className="text-[10px] text-slate-400">The Ethereum address that owns this batch.</p>
+                  <p className="text-[10px] text-slate-400">{t('farmers.sections.ownerAddress')}</p>
                 </div>
 
                 <Button 
@@ -268,53 +338,84 @@ const Farmers = () => {
             <Card className="h-full shadow-sm">
               <CardHeader>
                 <CardTitle>{t('farmers.sections.myBatches')}</CardTitle>
-                <CardDescription>Recent batches registered on the network.</CardDescription>
+                <CardDescription>{t('farmers.sections.recentBatches')}</CardDescription>
               </CardHeader>
               <CardContent>
-                {batches.length === 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <p>{t('common.loading')}</p>
+                  </div>
+                ) : batches.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">
                     <Tractor className="w-12 h-12 mx-auto mb-3 opacity-20" />
                     <p>No batches registered yet.</p>
                     <p className="text-sm">Use the form to create your first batch.</p>
                   </div>
                 ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Batch ID</TableHead>
-                          <TableHead>Crop</TableHead>
-                          <TableHead>Harvest Date</TableHead>
-                          <TableHead className="text-right">Qty (kg)</TableHead>
-                          <TableHead className="text-right">Price/Kg</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {batches.map((b) => (
-                          <TableRow key={b.batchId}>
-                            <TableCell className="font-mono font-medium">#{b.batchId}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                                  {b.cropType}
-                                </Badge>
-                              </div>
-                            </TableCell>
-                            <TableCell>{new Date(b.harvestDate).toLocaleDateString()}</TableCell>
-                            <TableCell className="text-right">{b.quantityKg}</TableCell>
-                            <TableCell className="text-right">₹{b.basePricePerKg}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" asChild>
-                                <Link to={`/batch?id=${encodeURIComponent(b.batchId)}`}>
-                                  View <ArrowUpRight className="w-4 h-4 ml-1" />
-                                </Link>
-                              </Button>
-                            </TableCell>
+                  <div className="space-y-4">
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Batch ID</TableHead>
+                            <TableHead>Crop</TableHead>
+                            <TableHead>Harvest Date</TableHead>
+                            <TableHead className="text-right">Qty (kg)</TableHead>
+                            <TableHead className="text-right">Price/Kg</TableHead>
+                            <TableHead className="text-right">Action</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {batches.map((b: any) => (
+                            <TableRow key={b.id}>
+                              <TableCell className="font-mono font-medium">#{b.id}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                    {t(`crops.${b.cropType}`) || b.cropType}
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell>{new Date(b.harvestDate * 1000).toLocaleDateString()}</TableCell>
+                              <TableCell className="text-right">{b.quantityKg}</TableCell>
+                              <TableCell className="text-right">₹{b.basePriceINR}</TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="sm" asChild>
+                                  <Link to={`/batch?id=${encodeURIComponent(b.id)}`}>
+                                    {t('farmers.sections.view')} <ArrowUpRight className="w-4 h-4 ml-1" />
+                                  </Link>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    {/* Pagination Controls */}
+                    <div className="flex items-center justify-between px-2">
+                      <p className="text-sm text-slate-500">
+                        Page {page} of {totalPages || 1}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setPage(p => Math.max(1, p - 1))}
+                          disabled={page === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                          disabled={page >= totalPages}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>

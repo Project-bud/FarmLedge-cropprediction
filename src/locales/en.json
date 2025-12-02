@@ -15,7 +15,9 @@
     "terms": "Terms of Service",
     "cookies": "Cookie Policy",
     "login": "Login",
-    "verifiers": "Verifiers"
+    "verifiers": "Verifiers",
+    "pricePrediction": "Price Prediction",
+    "connect_wallet": "Connect Wallet"
   },
   "footer": {
     "resources": "Resources",
@@ -24,7 +26,8 @@
     "description": "Revolutionizing agricultural supply chains with blockchain technology, ensuring transparent pricing and complete traceability from farm to fork.",
     "platform": "Platform",
     "copyright": "© 2025 FarmLedge Transparency Platform. All rights reserved.",
-    "brand": "FarmLedge Transparency Platform"
+    "brand": "FarmLedge Transparency Platform",
+    "rights": "All rights reserved."
   },
   "index": {
     "title": "Recent Batches",
@@ -135,6 +138,8 @@
   },
   "farmers": {
     "title": "Farmer Dashboard",
+    "registerHarvest": "Register Harvest",
+    "createDigitalTwin": "Create a new digital twin for your produce.",
     "form": {
       "cropType": "Crop Type",
       "quantityKg": "Quantity (kg)",
@@ -148,8 +153,15 @@
     },
     "sections": {
       "myBatches": "My Batches",
+      "recentBatches": "Recent batches registered on the network.",
       "owner": "Owner:",
-      "view": "View"
+      "view": "View",
+      "ownerAddress": "The Ethereum address that owns this batch."
+    },
+    "stats": {
+      "totalBatches": "Total Batches",
+      "totalVolume": "Total Volume",
+      "estRevenue": "Est. Revenue"
     },
     "errors": {
       "enterCrop": "Enter crop type",
@@ -159,29 +171,117 @@
       "enterEOA": "Enter a valid farmer EOA (0x...)",
       "registeredNoId": "Batch registered but batchId not decoded. Please refresh Batches list later.",
       "registerFailed": "Failed to register batch"
-    }
+    },
+    "register_produce": "Register Produce",
+    "crop_type": "Crop Type",
+    "select_crop": "Select a crop",
+    "quantity": "Quantity (kg)",
+    "price": "Price per kg (ETH)",
+    "register_button": "Register Produce",
+    "recent_batches": "Recent Batches",
+    "batch_id": "Batch ID",
+    "date": "Date",
+    "status": "Status",
+    "view_qr": "View QR",
+    "price_prediction": "Price Prediction",
+    "predicted_price": "Predicted Price",
+    "market_trends": "Market Trends"
   },
   "distributors": {
     "title": "Distributor Dashboard",
+    "subtitle": "Source verified produce directly from farmers.",
+    "refreshMarket": "Refresh Market",
+    "marketplace": {
+      "title": "Available Batches",
+      "description": "Verified harvests ready for distribution.",
+      "noBatches": "No verified batches available right now.",
+      "checkBack": "Check back later or refresh.",
+      "available": "available",
+      "selected": "Selected",
+      "select": "Select"
+    },
+    "purchase": {
+      "title": "Purchase Details",
+      "selectPrompt": "Select a batch from the list to begin purchase.",
+      "selectedBatch": "Selected Batch",
+      "availableQty": "Available Qty",
+      "basePrice": "Base Price",
+      "buyFullBatch": "Buy Full Batch",
+      "quantity": "Quantity (kg)",
+      "resalePrice": "Resale Price (₹/kg)",
+      "setMargin": "Set your margin",
+      "mustBeHigher": "Must be higher than",
+      "totalCost": "Total Cost",
+      "payAndTransfer": "Pay & Transfer Ownership",
+      "buyerWallet": "Buyer Wallet Address (For Testing)",
+      "devTools": "Dev Tools",
+      "processing": "Processing Payment...",
+      "wait": "Please wait while we confirm your transaction."
+    },
     "browse": "Browse Available Produce",
     "selectBatch": "Select batch",
     "setRetailerPrice": "Set Retailer Price (₹ total)",
-    "buttons": { "pay": "Pay Farmer (Stripe)", "refresh": "Refresh" },
+    "buttons": {
+      "pay": "Pay Farmer (Stripe)",
+      "refresh": "Refresh"
+    },
     "starting": "Starting…",
     "messages": {
       "login": "Please login to continue",
       "select": "Select a batch",
       "missingMin": "Missing on-chain min price",
-      "startFailed": "Failed to start payment"
+      "startFailed": "Failed to start payment",
+      "paymentSuccess": "Payment successful! Processing...",
+      "paymentProcessed": "Payment processed. Your batch will appear shortly.",
+      "paymentFailed": "Failed to start payment",
+      "enterValidQty": "Enter a valid quantity",
+      "qtyExceeds": "Quantity exceeds available",
+      "setResale": "Set your resale price",
+      "selectValid": "Select a valid batch",
+      "calcError": "Unable to calculate total price",
+      "addrRequired": "Address is required",
+      "addrInvalid": "Invalid address format"
     },
     "noneAvailable": "No verified farmer-held batches available. Ask verifier to verify batches.",
     "buyerAddress": "Buyer Address (EOA)"
   },
   "retailers": {
     "title": "Retailer Dashboard",
+    "subtitle": "Stock your shelves with verified produce.",
+    "refreshInventory": "Refresh Inventory",
+    "marketplace": {
+      "title": "Distributor Listings",
+      "description": "Batches available for retail purchase.",
+      "noBatches": "No batches available from distributors.",
+      "checkBack": "Check back later or refresh.",
+      "available": "available",
+      "selected": "Selected",
+      "select": "Select"
+    },
+    "purchase": {
+      "title": "Purchase Details",
+      "selectPrompt": "Select a batch to purchase.",
+      "selectedBatch": "Selected Batch",
+      "availableQty": "Available Qty",
+      "distributorPrice": "Distributor Price",
+      "buyFullBatch": "Buy Full Batch",
+      "quantity": "Quantity (kg)",
+      "consumerPrice": "Consumer Price (₹/kg)",
+      "setPrice": "Price for consumer",
+      "mustBeHigher": "Must be higher than",
+      "totalCost": "Total Cost",
+      "payAndAdd": "Pay & Add to Inventory",
+      "buyerWallet": "Buyer Wallet Address (For Testing)",
+      "devTools": "Dev Tools",
+      "processing": "Processing Payment...",
+      "wait": "Please wait while we confirm your transaction."
+    },
     "selectBatch": "Select batch",
     "setConsumerPrice": "Set Consumer Price (₹ total)",
-    "buttons": { "pay": "Pay Distributor (Stripe)", "refresh": "Refresh" },
+    "buttons": {
+      "pay": "Pay Distributor (Stripe)",
+      "refresh": "Refresh"
+    },
     "starting": "Starting…",
     "messages": {
       "login": "Please login to continue",
@@ -190,14 +290,27 @@
       "updated": "Retail price updated",
       "setFailed": "Failed to set price",
       "failed": "Failed",
-      "startFailed": "Failed to start payment"
+      "startFailed": "Failed to start payment",
+      "paymentSuccess": "Payment successful! Processing...",
+      "paymentProcessed": "Payment processed. Your batch will appear shortly.",
+      "paymentFailed": "Failed to start payment",
+      "enterValidQty": "Enter a valid quantity",
+      "qtyExceeds": "Quantity exceeds available",
+      "setConsumerPrice": "Set your consumer price",
+      "selectValid": "Select a valid batch",
+      "calcError": "Unable to calculate total price",
+      "addrRequired": "Address is required",
+      "addrInvalid": "Invalid address format"
     },
     "amount": "amount"
   },
   "consumers": {
     "title": "Consumer Dashboard",
     "selectBatch": "Select batch",
-    "buttons": { "pay": "Pay Retailer (Stripe)", "refresh": "Refresh" },
+    "buttons": {
+      "pay": "Pay Retailer (Stripe)",
+      "refresh": "Refresh"
+    },
     "starting": "Starting…",
     "messages": {
       "login": "Please login to continue",
@@ -206,7 +319,27 @@
       "failed": "Failed",
       "startFailed": "Failed to start payment"
     },
-    "amount": "amount"
+    "amount": "amount",
+    "verify_authenticity": "Verify Product Authenticity",
+    "scan_qr": "Scan QR Code",
+    "enter_batch_id": "Enter Batch ID manually",
+    "verify_product": "Verify Product",
+    "product_journey": "Product Journey",
+    "batch_id": "Batch ID",
+    "current_stage": "Current Stage",
+    "origin": "Origin",
+    "production_date": "Production Date",
+    "farmer": "Farmer",
+    "distributor": "Distributor",
+    "retailer": "Retailer",
+    "price_history": "Price History",
+    "fair_trade_verification": "Fair Trade Verification",
+    "fair_trade_certified": "Fair Trade Certified",
+    "direct_from_farmer": "Direct from Farmer",
+    "ethical_sourcing": "Ethical Sourcing",
+    "eco_friendly": "Eco-friendly",
+    "view_certificate": "View Certificate",
+    "report_issue": "Report Issue"
   },
   "batchDetails": {
     "title": "Batch Details",
@@ -250,5 +383,57 @@
       "d2r": "Distributor → Retailer",
       "r2c": "Retailer → Consumer"
     }
+  },
+  "prediction": {
+    "title": "Crop Price Prediction",
+    "subtitle": "AI-powered price forecasting for Odisha State",
+    "selectCrop": "Select Crop",
+    "selectCropDesc": "Choose a crop to see today's price prediction based on historical seasonality.",
+    "predictedPrice": "Predicted Price",
+    "currentMarketAvg": "Current Market Average",
+    "modelInsights": "Model Insights",
+    "seasonalFactor": "Seasonal Factor",
+    "method": "Method",
+    "performanceBased": "Performance-based",
+    "weightDistribution": "Weight Distribution",
+    "recent": "Recent",
+    "longTerm": "Long-term",
+    "basedOn": "Based on historical data analysis from {{start}} to {{end}}.",
+    "suggested": "Suggested: ₹{{price}} / kg"
+  },
+  "crops": {
+    "Banana": "Banana",
+    "Beans": "Beans",
+    "Bitter gourd": "Bitter gourd",
+    "Brinjal": "Brinjal",
+    "Cabbage": "Cabbage",
+    "Capsicum": "Capsicum",
+    "Carrot": "Carrot",
+    "Cashewnuts": "Cashewnuts",
+    "Cauliflower": "Cauliflower",
+    "Chili Red": "Chili Red",
+    "Coconut": "Coconut",
+    "Cow": "Cow",
+    "Dry Chillies": "Dry Chillies",
+    "Fish": "Fish",
+    "Garlic": "Garlic",
+    "Green Chilli": "Green Chilli",
+    "Ground Nut Seed": "Ground Nut Seed",
+    "Groundnut": "Groundnut",
+    "Hen": "Hen",
+    "Jack Fruit": "Jack Fruit",
+    "Jute": "Jute",
+    "Mango": "Mango",
+    "Mustard": "Mustard",
+    "Onion": "Onion",
+    "Ox": "Ox",
+    "Papaya": "Papaya",
+    "Peas cod": "Peas cod",
+    "Potato": "Potato",
+    "Pumpkin": "Pumpkin",
+    "Raddish": "Raddish",
+    "Rice": "Rice",
+    "Tomato": "Tomato",
+    "Water Melon": "Water Melon"
   }
 }

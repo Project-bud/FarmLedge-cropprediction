@@ -49,7 +49,7 @@ const Distributors = () => {
         const isComplete = params.get('complete') === '1';
         const sessionId = params.get('session_id');
 
-        toast.info("Payment successful! Processing...");
+        toast.info(t('distributors.messages.paymentSuccess'));
 
         // Manually confirm payment to handle localhost webhook issues
         if (sessionId) {
@@ -99,7 +99,7 @@ const Distributors = () => {
         }
 
         // Fallback if not found
-        toast.success("Payment processed. Your batch will appear shortly.");
+        toast.success(t('distributors.messages.paymentProcessed'));
         // Clear param
         window.history.replaceState({}, '', window.location.pathname);
         fetchBatches();
@@ -109,7 +109,7 @@ const Distributors = () => {
     };
 
     checkPayment();
-  }, [user]);
+  }, [user, t]);
 
   const available = useMemo(() => {
     // Available = currently held by farmer (owner == farmer) and VERIFIED
@@ -149,20 +149,20 @@ const Distributors = () => {
   useEffect(() => {
     if (!user) { setActionMsg(t('distributors.messages.login')); return; }
     if (!selectedBatch) { setActionMsg(t('distributors.messages.select')); return; }
-    if (!buyQuantity || Number(buyQuantity) <= 0) { setActionMsg("Enter a valid quantity"); return; }
-    if (Number(buyQuantity) > selectedBatchData?.quantityKg) { setActionMsg("Quantity exceeds available"); return; }
-    if (!resalePrice) { setActionMsg("Set your resale price"); return; }
+    if (!buyQuantity || Number(buyQuantity) <= 0) { setActionMsg(t('distributors.messages.enterValidQty')); return; }
+    if (Number(buyQuantity) > selectedBatchData?.quantityKg) { setActionMsg(t('distributors.messages.qtyExceeds')); return; }
+    if (!resalePrice) { setActionMsg(t('distributors.messages.setResale')); return; }
     setActionMsg("");
   }, [buyQuantity, completeBatch, resalePrice, selectedBatch, selectedBatchData?.quantityKg, t, user]);
 
   const validateAddress = (value: string) => {
     const trimmed = value?.trim();
     if (!trimmed) {
-      setAddrError("Address is required");
+      setAddrError(t('distributors.messages.addrRequired'));
       return false;
     }
     if (!isHexAddress(trimmed)) {
-      setAddrError("Invalid address format");
+      setAddrError(t('distributors.messages.addrInvalid'));
       return false;
     }
     if (addrError) setAddrError("");
@@ -172,16 +172,16 @@ const Distributors = () => {
   const pay = async () => {
     if (!user) { setActionMsg(t('distributors.messages.login')); toast.error(t('distributors.messages.login')); return; }
     if (!selectedBatch) { setActionMsg(t('distributors.messages.select')); return; }
-    if (!buyQuantity || Number(buyQuantity) <= 0) { setActionMsg("Enter a valid quantity"); return; }
-    if (!selectedBatchData) { setActionMsg("Select a valid batch"); return; }
-    if (Number(buyQuantity) > selectedBatchData.quantityKg) { setActionMsg("Quantity exceeds available"); return; }
-    if (!resalePrice || Number(resalePrice) <= 0) { setActionMsg("Set your resale price"); return; }
+    if (!buyQuantity || Number(buyQuantity) <= 0) { setActionMsg(t('distributors.messages.enterValidQty')); return; }
+    if (!selectedBatchData) { setActionMsg(t('distributors.messages.selectValid')); return; }
+    if (Number(buyQuantity) > selectedBatchData.quantityKg) { setActionMsg(t('distributors.messages.qtyExceeds')); return; }
+    if (!resalePrice || Number(resalePrice) <= 0) { setActionMsg(t('distributors.messages.setResale')); return; }
 
     const finalBuyer = buyerAddress?.trim() ? buyerAddress : DEFAULT_ADDRESSES.DISTRIBUTOR;
     if (!validateAddress(finalBuyer)) { return; }
 
     const priceInr = totalPrice;
-    if (priceInr <= 0) { setActionMsg("Unable to calculate total price"); return; }
+    if (priceInr <= 0) { setActionMsg(t('distributors.messages.calcError')); return; }
 
     // Calculate total resale price for complete batch logic
     const totalResalePrice = resalePrice ? (Number(resalePrice)).toFixed(0) : '0';
@@ -221,7 +221,7 @@ const Distributors = () => {
       else setActionMsg(t('distributors.messages.startFailed'));
     } catch (e) {
       console.error(e);
-      toast.error("Failed to start payment");
+      toast.error(t('distributors.messages.paymentFailed'));
     } finally {
       setPaying(false);
     }
@@ -231,8 +231,8 @@ const Distributors = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <h2 className="text-xl font-semibold">Processing Payment...</h2>
-        <p className="text-muted-foreground">Please wait while we confirm your transaction.</p>
+        <h2 className="text-xl font-semibold">{t('distributors.purchase.processing')}</h2>
+        <p className="text-muted-foreground">{t('distributors.purchase.wait')}</p>
       </div>
     );
   }
@@ -244,11 +244,11 @@ const Distributors = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-serif font-bold text-slate-900">{t('distributors.title')}</h1>
-            <p className="text-slate-500 mt-1">Source verified produce directly from farmers.</p>
+            <p className="text-slate-500 mt-1">{t('distributors.subtitle')}</p>
           </div>
           <Button variant="outline" onClick={fetchBatches} className="gap-2">
             <RefreshCw className="w-4 h-4" />
-            Refresh Market
+            {t('distributors.refreshMarket')}
           </Button>
         </div>
 
@@ -259,17 +259,17 @@ const Distributors = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5 text-blue-600" />
-                  Available Batches
+                  {t('distributors.marketplace.title')}
                 </CardTitle>
-                <CardDescription>Verified harvests ready for distribution.</CardDescription>
+                <CardDescription>{t('distributors.marketplace.description')}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 p-0 overflow-hidden">
                 <ScrollArea className="h-full">
                   {available.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-slate-400 p-8 text-center">
                       <Package className="w-12 h-12 mb-3 opacity-20" />
-                      <p>No verified batches available right now.</p>
-                      <p className="text-sm">Check back later or refresh.</p>
+                      <p>{t('distributors.marketplace.noBatches')}</p>
+                      <p className="text-sm">{t('distributors.marketplace.checkBack')}</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-100">
@@ -296,7 +296,7 @@ const Distributors = () => {
                                   )}
                                 </div>
                                 <div className="text-sm text-slate-500 mt-1">
-                                  {b.quantityKg} kg available • ₹{price}/kg
+                                  {b.quantityKg} kg {t('distributors.marketplace.available')} • ₹{price}/kg
                                 </div>
                               </div>
                             </div>
@@ -306,7 +306,7 @@ const Distributors = () => {
                                 variant={isSelected ? "default" : "ghost"}
                                 className={isSelected ? "bg-blue-600 hover:bg-blue-700" : ""}
                               >
-                                {isSelected ? "Selected" : "Select"}
+                                {isSelected ? t('distributors.marketplace.selected') : t('distributors.marketplace.select')}
                               </Button>
                             </div>
                           </div>
@@ -325,28 +325,28 @@ const Distributors = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="w-5 h-5 text-blue-600" />
-                  Purchase Details
+                  {t('distributors.purchase.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {!selectedBatch ? (
                   <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border border-dashed">
                     <ArrowRight className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">Select a batch from the list to begin purchase.</p>
+                    <p className="text-sm">{t('distributors.purchase.selectPrompt')}</p>
                   </div>
                 ) : (
                   <>
                     <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Selected Batch</span>
+                        <span className="text-slate-500">{t('distributors.purchase.selectedBatch')}</span>
                         <span className="font-mono font-medium">#{selectedBatch}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Available Qty</span>
+                        <span className="text-slate-500">{t('distributors.purchase.availableQty')}</span>
                         <span className="font-medium">{selectedBatchData?.quantityKg} kg</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Base Price</span>
+                        <span className="text-slate-500">{t('distributors.purchase.basePrice')}</span>
                         <span className="font-medium">₹{pricePerKg.toFixed(2)}/kg</span>
                       </div>
                     </div>
@@ -359,12 +359,12 @@ const Distributors = () => {
                           onCheckedChange={(checked) => setCompleteBatch(checked as boolean)}
                         />
                         <Label htmlFor="completeBatch" className="cursor-pointer text-sm font-medium">
-                          Buy Full Batch
+                          {t('distributors.purchase.buyFullBatch')}
                         </Label>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Quantity (kg)</Label>
+                        <Label>{t('distributors.purchase.quantity')}</Label>
                         <Input
                           type="number"
                           value={buyQuantity}
@@ -377,23 +377,23 @@ const Distributors = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Resale Price (₹/kg)</Label>
+                        <Label>{t('distributors.purchase.resalePrice')}</Label>
                         <Input
                           type="number"
                           value={resalePrice}
                           onChange={(e) => setResalePrice(e.target.value)}
-                          placeholder="Set your margin"
+                          placeholder={t('distributors.purchase.setMargin')}
                           min={pricePerKg}
                         />
                         <p className="text-[10px] text-slate-400">
-                          Must be higher than ₹{pricePerKg.toFixed(2)}
+                          {t('distributors.purchase.mustBeHigher')} ₹{pricePerKg.toFixed(2)}
                         </p>
                       </div>
 
                       <Separator />
 
                       <div className="flex justify-between items-end">
-                        <span className="text-sm font-medium text-slate-700">Total Cost</span>
+                        <span className="text-sm font-medium text-slate-700">{t('distributors.purchase.totalCost')}</span>
                         <span className="text-2xl font-bold text-slate-900">₹{totalPrice.toLocaleString()}</span>
                       </div>
 
@@ -410,10 +410,10 @@ const Distributors = () => {
                         disabled={paying || !buyQuantity || !resalePrice || Number(resalePrice) <= 0}
                       >
                         {paying ? (
-                          <>Processing...</>
+                          <>{t('distributors.purchase.processing')}</>
                         ) : (
                           <>
-                            Pay & Transfer Ownership
+                            {t('distributors.purchase.payAndTransfer')}
                             <ArrowRight className="w-4 h-4 ml-2" />
                           </>
                         )}
@@ -422,7 +422,7 @@ const Distributors = () => {
 
                     <div className="pt-4 border-t">
                       <div className="space-y-2">
-                        <Label className="text-xs text-slate-500">Buyer Wallet Address (For Testing)</Label>
+                        <Label className="text-xs text-slate-500">{t('distributors.purchase.buyerWallet')}</Label>
                         <Input
                           className="h-8 text-xs font-mono"
                           placeholder="0x..."
@@ -441,7 +441,7 @@ const Distributors = () => {
             </Card>
             
             <div className="bg-slate-100 p-4 rounded-lg border border-slate-200">
-              <h4 className="font-semibold text-sm mb-2 text-slate-700">Dev Tools</h4>
+              <h4 className="font-semibold text-sm mb-2 text-slate-700">{t('distributors.purchase.devTools')}</h4>
               <TestingAddresses />
             </div>
           </div>

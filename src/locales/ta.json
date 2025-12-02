@@ -15,7 +15,8 @@
     "terms": "சேவை விதிமுறைகள்",
     "cookies": "குக்கீ கொள்கை",
     "login": "உள்நுழை",
-    "verifiers": "சரிபார்ப்பவர்கள்"
+    "verifiers": "சரிபார்ப்பவர்கள்",
+    "pricePrediction": "விலை கணிப்பு"
   },
   "footer": {
     "resources": "வளங்கள்",
@@ -134,6 +135,8 @@
   ,
   "farmers": {
     "title": "விவசாயி டாஷ்போர்டு",
+    "registerHarvest": "அறுவடையைப் பதிவுசெய்க",
+    "createDigitalTwin": "உங்கள் விளைச்சலுக்கான புதிய டிஜிட்டல் இரட்டையை உருவாக்கவும்.",
     "form": {
       "cropType": "பயிர் வகை",
       "quantityKg": "அளவு (கிலோ)",
@@ -142,7 +145,18 @@
       "farmerAddress": "விவசாயி முகவரி (EOA)"
     },
     "actions": { "register": "தயாரிப்பை பதிவு செய்", "registering": "பதிவு செய்கிறது…" },
-    "sections": { "myBatches": "என் தொகுப்புகள்", "owner": "உரிமையாளர்:", "view": "பார்" },
+    "sections": {
+      "myBatches": "என் தொகுப்புகள்",
+      "recentBatches": "நெட்வொர்க்கில் பதிவு செய்யப்பட்ட சமீபத்திய தொகுப்புகள்.",
+      "owner": "உரிமையாளர்:",
+      "view": "பார்",
+      "ownerAddress": "இந்த தொகுப்பின் உரிமையாளர் எத்தேரியம் முகவரி."
+    },
+    "stats": {
+      "totalBatches": "மொத்த தொகுப்புகள்",
+      "totalVolume": "மொத்த அளவு",
+      "estRevenue": "மதிப்பிடப்பட்ட வருவாய்"
+    },
     "errors": {
       "enterCrop": "பயிர் வகையை உள்ளிடவும்",
       "enterQty": "சரியான அளவை (கிலோ) உள்ளிடவும்",
@@ -155,6 +169,35 @@
   },
   "distributors": {
     "title": "விநியோகஸ்தர் டாஷ்போர்டு",
+    "subtitle": "விவசாயிகளிடமிருந்து நேரடியாக சரிபார்க்கப்பட்ட தயாரிப்புகளைப் பெறுங்கள்.",
+    "refreshMarket": "சந்தையைப் புதுப்பிக்கவும்",
+    "marketplace": {
+      "title": "கிடைக்கும் தொகுப்புகள்",
+      "description": "விநியோகத்திற்குத் தயாராக உள்ள சரிபார்க்கப்பட்ட அறுவடைகள்.",
+      "noBatches": "தற்போது சரிபார்க்கப்பட்ட தொகுப்புகள் எதுவும் இல்லை.",
+      "checkBack": "பின்னர் சரிபார்க்கவும் அல்லது புதுப்பிக்கவும்.",
+      "available": "கிடைக்கிறது",
+      "selected": "தேர்ந்தெடுக்கப்பட்டது",
+      "select": "தேர்ந்தெடு"
+    },
+    "purchase": {
+      "title": "கொள்முதல் விவரங்கள்",
+      "selectPrompt": "கொள்முதல் தொடங்க பட்டியலிலிருந்து ஒரு தொகுப்பைத் தேர்ந்தெடுக்கவும்.",
+      "selectedBatch": "தேர்ந்தெடுக்கப்பட்ட தொகுப்பு",
+      "availableQty": "கிடைக்கும் அளவு",
+      "basePrice": "அடிப்படை விலை",
+      "buyFullBatch": "முழு தொகுப்பையும் வாங்கவும்",
+      "quantity": "அளவு (கிலோ)",
+      "resalePrice": "மறுவிற்பனை விலை (₹/கிலோ)",
+      "setMargin": "உங்கள் லாபத்தை அமைக்கவும்",
+      "mustBeHigher": "இதை விட அதிகமாக இருக்க வேண்டும்",
+      "totalCost": "மொத்த செலவு",
+      "payAndTransfer": "பணம் செலுத்தி உரிமையை மாற்றவும்",
+      "buyerWallet": "வாங்குபவர் வாலட் முகவரி (சோதனைக்காக)",
+      "devTools": "டெவ் டூல்ஸ்",
+      "processing": "பணம் செயலாக்கப்படுகிறது...",
+      "wait": "உங்கள் பரிவர்த்தனையை உறுதிப்படுத்தும் வரை காத்திருக்கவும்."
+    },
     "browse": "கிடைக்கும் தயாரிப்புகளைப் பார்வையிடவும்",
     "selectBatch": "தொகுப்பைத் தேர்ந்தெடுக்கவும்",
     "setRetailerPrice": "சில்லறை விலை (₹ மொத்தம்) அமைக்கவும்",
@@ -164,27 +207,76 @@
       "login": "தொடர உள்நுழையவும்",
       "select": "ஒரு தொகுப்பைத் தேர்ந்தெடுக்கவும்",
       "missingMin": "ஆன்-செயின் குறைந்த விலை இல்லை",
-      "startFailed": "கொடுப்பனவு தொடங்க முடியவில்லை"
+      "startFailed": "கொடுப்பனவு தொடங்க முடியவில்லை",
+      "paymentSuccess": "பணம் செலுத்துதல் வெற்றி! செயலாக்கப்படுகிறது...",
+      "paymentProcessed": "பணம் செயலாக்கப்பட்டது. உங்கள் தொகுப்பு விரைவில் தோன்றும்.",
+      "paymentFailed": "பணம் செலுத்தத் தொடங்க முடியவில்லை",
+      "enterValidQty": "சரியான அளவை உள்ளிடவும்",
+      "qtyExceeds": "அளவு இருப்பை விட அதிகமாக உள்ளது",
+      "setResale": "உங்கள் மறுவிற்பனை விலையை அமைக்கவும்",
+      "selectValid": "சரியான தொகுப்பைத் தேர்ந்தெடுக்கவும்",
+      "calcError": "மொத்த விலையைக் கணக்கிட முடியவில்லை",
+      "addrRequired": "முகவரி தேவை",
+      "addrInvalid": "தவறான முகவரி வடிவம்"
     },
     "noneAvailable": "சரிபார்க்கப்பட்ட விவசாயி வைத்திருக்கும் தொகுப்புகள் இல்லை. சரிபார்ப்பவரை தொடர்பு கொள்ளவும்.",
     "buyerAddress": "கொள்முதல் முகவரி (EOA)"
   },
   "retailers": {
-    "title": "சில்லறை விற்பனையாளர் டாஷ்போர்டு",
-    "selectBatch": "தொகுப்பைத் தேர்ந்தெடுக்கவும்",
-    "setConsumerPrice": "நுகர்வோர் விலை (₹ மொத்தம்) அமைக்கவும்",
-    "buttons": { "pay": "விநியோகஸ்தருக்கு பணம் (ஸ்ட்ரைப்)", "refresh": "புதுப்பிக்கவும்" },
-    "starting": "தொடங்குகிறது…",
-    "messages": {
-      "login": "தொடர உள்நுழையவும்",
-      "select": "ஒரு தொகுப்பைத் தேர்ந்தெடுக்கவும்",
-      "missingPrice": "ஆன்-செயின் விலை இல்லை",
-      "updated": "சில்லறை விலை புதுப்பிக்கப்பட்டது",
-      "setFailed": "விலையை அமைக்க முடியவில்லை",
-      "failed": "தோல்வியது",
-      "startFailed": "கொடுப்பனவு தொடங்க முடியவில்லை"
+    "title": "Retailer Dashboard",
+    "subtitle": "Stock your shelves with verified produce.",
+    "refreshInventory": "Refresh Inventory",
+    "marketplace": {
+      "title": "Distributor Listings",
+      "description": "Batches available for retail purchase.",
+      "noBatches": "No batches available from distributors.",
+      "checkBack": "Check back later or refresh.",
+      "available": "available",
+      "selected": "Selected",
+      "select": "Select"
     },
-    "amount": "தொகை"
+    "purchase": {
+      "title": "Purchase Details",
+      "selectPrompt": "Select a batch to purchase.",
+      "selectedBatch": "Selected Batch",
+      "availableQty": "Available Qty",
+      "distributorPrice": "Distributor Price",
+      "buyFullBatch": "Buy Full Batch",
+      "quantity": "Quantity (kg)",
+      "consumerPrice": "Consumer Price (₹/kg)",
+      "setPrice": "Price for consumer",
+      "mustBeHigher": "Must be higher than",
+      "totalCost": "Total Cost",
+      "payAndAdd": "Pay & Add to Inventory",
+      "buyerWallet": "Buyer Wallet Address (For Testing)",
+      "devTools": "Dev Tools",
+      "processing": "Processing Payment...",
+      "wait": "Please wait while we confirm your transaction."
+    },
+    "selectBatch": "Select batch",
+    "setConsumerPrice": "Set Consumer Price (₹ total)",
+    "buttons": { "pay": "Pay Distributor (Stripe)", "refresh": "Refresh" },
+    "starting": "Starting…",
+    "messages": {
+      "login": "Please login to continue",
+      "select": "Select a batch",
+      "missingPrice": "Missing on-chain price",
+      "updated": "Retail price updated",
+      "setFailed": "Failed to set price",
+      "failed": "Failed",
+      "startFailed": "Failed to start payment",
+      "paymentSuccess": "Payment successful! Processing...",
+      "paymentProcessed": "Payment processed. Your batch will appear shortly.",
+      "paymentFailed": "Failed to start payment",
+      "enterValidQty": "Enter a valid quantity",
+      "qtyExceeds": "Quantity exceeds available",
+      "setConsumerPrice": "Set your consumer price",
+      "selectValid": "Select a valid batch",
+      "calcError": "Unable to calculate total price",
+      "addrRequired": "Address is required",
+      "addrInvalid": "Invalid address format"
+    },
+    "amount": "amount"
   },
   "consumers": {
     "title": "நுகர்வோர் டாஷ்போர்டு",
@@ -242,5 +334,23 @@
       "d2r": "விநியோகஸ்தர் → சில்லறை",
       "r2c": "சில்லறை → நுகர்வோர்"
     }
+  },
+  "prediction": {
+    "title": "பயிர் விலை கணிப்பு",
+    "subtitle": "ஒடிசா மாநிலத்திற்கான AI-ஆற்றல் விலை முன்னறிவிப்பு",
+    "selectCrop": "பயிரைத் தேர்ந்தெடுக்கவும்",
+    "selectCropDesc": "வரலாற்றுப் பருவநிலையின் அடிப்படையில் இன்றைய விலை கணிப்பைக் காண ஒரு பயிரைத் தேர்ந்தெடுக்கவும்.",
+    "placeholder": "ஒரு பயிரைத் தேர்ந்தெடுக்கவும்",
+    "predictedPrice": "கணிக்கப்பட்ட விலை",
+    "currentAverage": "தற்போதைய சந்தை சராசரி",
+    "modelInsights": "மாதிரி நுண்ணறிவு",
+    "seasonalFactor": "பருவகால காரணி",
+    "method": "முறை",
+    "performanceBased": "செயல்திறன் அடிப்படையிலான",
+    "weightDistribution": "எடை விநியோகம்",
+    "recent": "சமீபத்திய",
+    "longTerm": "நீண்ட கால",
+    "basedOn": "{{start}} முதல் {{end}} வரையிலான வரலாற்றுத் தரவு பகுப்பாய்வின் அடிப்படையில்.",
+    "suggested": "பரிந்துரைக்கப்பட்டது: ₹{{price}} / கிலோ"
   }
 }

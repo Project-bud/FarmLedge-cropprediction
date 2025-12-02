@@ -10,11 +10,24 @@ import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import heroImage from "@/assets/hero-agriculture.jpg";
+import hero1 from "@/assets/hero1.jpg";
+import hero2 from "@/assets/hero2.jpg";
+import hero3 from "@/assets/hero3.jpg";
+import hero4 from "@/assets/hero4.jpg";
+
+const HERO_IMAGES = [hero1, hero2, hero3, hero4];
 
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
   
   type Batch = {
     id: number | string;
@@ -149,14 +162,19 @@ const Index = () => {
               {/* Right: Abstract/Image */}
               <div className="relative hidden lg:block">
                 <div className="absolute inset-0 bg-emerald-900/5 rounded-3xl transform rotate-3"></div>
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
-                  <img 
-                    src={heroImage} 
-                    alt="Supply Chain Technology" 
-                    className="w-full h-full object-cover scale-105 hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent"></div>
-                  <div className="absolute bottom-8 left-8 text-white">
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[15/9]">
+                  {HERO_IMAGES.map((img, index) => (
+                    <img 
+                      key={img}
+                      src={img} 
+                      alt="Supply Chain Technology" 
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                        index === currentImageIndex ? "opacity-100 scale-105" : "opacity-0 scale-100"
+                      }`}
+                    />
+                  ))}
+                  <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent z-10"></div>
+                  <div className="absolute bottom-8 left-8 text-white z-20">
                     <div className="flex items-center gap-2 mb-2">
                       <ShieldCheck className="w-5 h-5 text-emerald-400" />
                       <span className="font-medium text-emerald-100">{t('hero.secure')}</span>

@@ -14,6 +14,7 @@ import Distributors from "./pages/Distributors";
 import Retailers from "./pages/Retailers";
 import Consumers from "./pages/Consumers";
 import BatchDetails from "./pages/BatchDetails";
+import PricePrediction from "./pages/PricePrediction";
 import Login from "./pages/Login";
 import BlockchainGuide from "./pages/BlockchainGuide";
 import FairTrade from "./pages/FairTrade";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/join" element={<Join />} />
             <Route path="/login" element={<Login />} />
             <Route path="/batch" element={<BatchDetails />} />
+            <Route path="/price-prediction" element={<PricePrediction />} />
 
             <Route element={<ProtectedRoute role="farmer" />}> 
               <Route path="/farmers" element={<Farmers />} />

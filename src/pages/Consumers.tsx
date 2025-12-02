@@ -266,7 +266,7 @@ const Consumers = () => {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono font-medium text-slate-900">#{b.id}</span>
-                                  <Badge variant="secondary" className="text-xs font-normal">{b.cropType}</Badge>
+                                  <Badge variant="secondary" className="text-xs font-normal">{t(`crops.${b.cropType}`) || b.cropType}</Badge>
                                 </div>
                                 <div className="text-sm text-slate-500 mt-1">
                                   {b.quantityKg} kg available • ₹{price}/kg

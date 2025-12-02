@@ -35,6 +35,7 @@ const Navigation = () => {
     { label: t("nav.retailers"), href: "/retailers" },
     { label: t("nav.consumers"), href: "/consumers" },
     { label: t("nav.verifiers"), href: "/verifiers" },
+    { label: t("nav.pricePrediction"), href: "/price-prediction" },
   ];
 
   const truncateAddress = (addr?: string) => {

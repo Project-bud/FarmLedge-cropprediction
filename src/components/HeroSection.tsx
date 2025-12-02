@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +13,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Leaf, Shield, Eye, QrCode, Copy, Link as LinkIcon, Download } from "lucide-react";
-import heroImage from "@/assets/hero-agriculture.jpg";
+import hero1 from "@/assets/hero1.jpg";
+import hero2 from "@/assets/hero2.jpg";
+import hero3 from "@/assets/hero3.jpg";
+import hero4 from "@/assets/hero4.jpg";
 import { useTranslation } from "react-i18next";
 import { QRCodeCanvas } from "qrcode.react";
 import { useToast } from "@/components/ui/use-toast";
 
+const HERO_IMAGES = [hero1, hero2, hero3, hero4];
+
 const HeroSection = () => {
   const { t } = useTranslation();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 5000); // Switch every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // QR Modal state
   const [qrOpen, setQrOpen] = useState(false);
@@ -70,11 +84,16 @@ const HeroSection = () => {
   <section id="about" className="relative min-h-[70vh] sm:min-h-screen flex items-center justify-center overflow-hidden scroll-mt-24">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src={heroImage} 
-          alt="Agricultural transparency from farm to consumer"
-          className="w-full h-full object-cover"
-        />
+        {HERO_IMAGES.map((img, index) => (
+          <img 
+            key={img}
+            src={img} 
+            alt="Agricultural transparency from farm to consumer"
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+              index === currentImageIndex ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        ))}
         <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/60" />
       </div>
 
