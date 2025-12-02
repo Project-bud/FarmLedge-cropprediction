@@ -211,6 +211,29 @@
   "batchDetails": {
     "title": "Batch Details",
     "error": "Error",
+    "notFound": "Batch Not Found",
+    "notFoundDesc": "We couldn't locate the batch details you requested.",
+    "returnHome": "Return Home",
+    "journey": "Journey",
+    "quantity": "Quantity",
+    "currentOwner": "Current Owner",
+    "originBatch": "Origin Batch (Parent)",
+    "splitFrom": "This batch was split from a larger harvest (Batch #{{id}}).",
+    "viewParent": "View Parent",
+    "identity": "Identity",
+    "transactionPrice": "Transaction Price",
+    "verifiedOnChain": "Verified on blockchain",
+    "steps": {
+      "farmerDesc": "Crop harvested and registered on blockchain",
+      "distributorDesc": "Transported and verified by logistics partner",
+      "retailerDesc": "Received at retail location, quality checked",
+      "consumerDesc": "Purchased by end consumer"
+    },
+    "roles": {
+      "distributor": "Distributor",
+      "retailer": "Retailer",
+      "consumer": "Consumer"
+    },
     "labels": {
       "batch": "Batch",
       "crop": "Crop",

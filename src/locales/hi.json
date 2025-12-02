@@ -205,6 +205,29 @@
   "batchDetails": {
     "title": "बैच विवरण",
     "error": "त्रुटि",
+    "notFound": "बैच नहीं मिला",
+    "notFoundDesc": "हम आपके द्वारा अनुरोधित बैच विवरण का पता नहीं लगा सके।",
+    "returnHome": "घर वापस जाओ",
+    "journey": "यात्रा",
+    "quantity": "मात्रा",
+    "currentOwner": "वर्तमान मालिक",
+    "originBatch": "मूल बैच (पैरेंट)",
+    "splitFrom": "यह बैच एक बड़ी फसल से विभाजित किया गया था (बैच #{{id}})।",
+    "viewParent": "पैरेंट देखें",
+    "identity": "पहचान",
+    "transactionPrice": "लेनदेन मूल्य",
+    "verifiedOnChain": "ब्लॉकचेन पर सत्यापित",
+    "steps": {
+      "farmerDesc": "फसल की कटाई और ब्लॉकचेन पर पंजीकरण",
+      "distributorDesc": "लॉजिस्टिक्स पार्टनर द्वारा परिवहन और सत्यापित",
+      "retailerDesc": "खुदरा स्थान पर प्राप्त, गुणवत्ता की जाँच की गई",
+      "consumerDesc": "अंतिम उपभोक्ता द्वारा खरीदा गया"
+    },
+    "roles": {
+      "distributor": "वितरक",
+      "retailer": "खुदरा विक्रेता",
+      "consumer": "उपभोक्ता"
+    },
     "labels": {
       "batch": "बैच",
       "crop": "फसल",

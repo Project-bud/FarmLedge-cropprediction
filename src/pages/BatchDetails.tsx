@@ -89,9 +89,9 @@ export default function BatchDetails() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-600 mb-4">
             <Package className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Batch Not Found</h1>
-          <p className="text-slate-600 mb-8">{error || "We couldn't locate the batch details you requested."}</p>
-          <Link to="/" className="text-emerald-600 hover:underline font-medium">Return Home</Link>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">{t('batchDetails.notFound')}</h1>
+          <p className="text-slate-600 mb-8">{error || t('batchDetails.notFoundDesc')}</p>
+          <Link to="/" className="text-emerald-600 hover:underline font-medium">{t('batchDetails.returnHome')}</Link>
         </main>
       </div>
     );
@@ -109,46 +109,46 @@ export default function BatchDetails() {
       price: batch.minPriceINR || batch.basePriceINR,
       actor: batch.farmer,
       isCompleted: true,
-      description: "Crop harvested and registered on blockchain",
+      description: t('batchDetails.steps.farmerDesc'),
       color: "text-emerald-600",
       bgColor: "bg-emerald-100",
       borderColor: "border-emerald-200"
     },
     {
       key: 'distributor',
-      role: "Distributor", // Using hardcoded fallback if translation key missing, ideally use t('roles.distributor')
+      role: t('batchDetails.roles.distributor'),
       icon: Truck,
       date: batch.dates?.boughtByDistributor,
       price: batch.priceByDistributorINR,
       actor: null, // We don't always have the distributor name in the simple view unless we fetch profiles
       isCompleted: !!batch.dates?.boughtByDistributor,
-      description: "Transported and verified by logistics partner",
+      description: t('batchDetails.steps.distributorDesc'),
       color: "text-blue-600",
       bgColor: "bg-blue-100",
       borderColor: "border-blue-200"
     },
     {
       key: 'retailer',
-      role: "Retailer",
+      role: t('batchDetails.roles.retailer'),
       icon: Store,
       date: batch.dates?.boughtByRetailer,
       price: batch.priceByRetailerINR,
       actor: null,
       isCompleted: !!batch.dates?.boughtByRetailer,
-      description: "Received at retail location, quality checked",
+      description: t('batchDetails.steps.retailerDesc'),
       color: "text-amber-600",
       bgColor: "bg-amber-100",
       borderColor: "border-amber-200"
     },
     {
       key: 'consumer',
-      role: "Consumer",
+      role: t('batchDetails.roles.consumer'),
       icon: User,
       date: batch.dates?.boughtByConsumer,
       price: null, // Consumer doesn't set a price
       actor: null,
       isCompleted: !!batch.dates?.boughtByConsumer,
-      description: "Purchased by end consumer",
+      description: t('batchDetails.steps.consumerDesc'),
       color: "text-purple-600",
       bgColor: "bg-purple-100",
       borderColor: "border-purple-200"
@@ -164,19 +164,19 @@ export default function BatchDetails() {
         <div className="mb-12">
           <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium mb-2">
             <Package className="w-4 h-4" />
-            <span>Batch #{batch.id}</span>
+            <span>{t('batchDetails.labels.batch')} #{batch.id}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-slate-900 mb-4">
-            {batch.cropType} Journey
+            {batch.cropType} {t('batchDetails.journey')}
           </h1>
           <div className="flex flex-wrap gap-4 text-sm text-slate-600">
             <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border shadow-sm">
               <span className="font-semibold text-slate-900">{batch.quantityKg} kg</span>
-              <span>Quantity</span>
+              <span>{t('batchDetails.quantity')}</span>
             </div>
             <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border shadow-sm">
               <span className="font-semibold text-slate-900">{batch.currentOwner.slice(0, 6)}...{batch.currentOwner.slice(-4)}</span>
-              <span>Current Owner</span>
+              <span>{t('batchDetails.currentOwner')}</span>
             </div>
             <Badge variant="outline" className={cn(
               "px-3 py-1.5 text-xs uppercase tracking-wider font-semibold",
@@ -194,17 +194,17 @@ export default function BatchDetails() {
               <div>
                 <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                   <LinkIcon className="w-4 h-4" />
-                  Origin Batch (Parent)
+                  {t('batchDetails.originBatch')}
                 </h3>
                 <p className="text-sm text-slate-600 mt-1">
-                  This batch was split from a larger harvest (Batch #{batch.parentId}).
+                  {t('batchDetails.splitFrom', { id: batch.parentId })}
                 </p>
               </div>
               <Link 
                 to={`/batch?id=${batch.parentId}`}
                 className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
               >
-                View Parent <ArrowRight className="w-4 h-4" />
+                {t('batchDetails.viewParent')} <ArrowRight className="w-4 h-4" />
               </Link>
             </CardContent>
           </Card>
@@ -250,14 +250,14 @@ export default function BatchDetails() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                         {step.actor && (
                           <div className="space-y-1">
-                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Identity</span>
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('batchDetails.identity')}</span>
                             <div className="font-mono text-sm text-slate-700 break-all">{step.actor}</div>
                           </div>
                         )}
                         
                         {step.price && (
                           <div className="space-y-1">
-                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Transaction Price</span>
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('batchDetails.transactionPrice')}</span>
                             <div className="flex items-center gap-1 text-emerald-700 font-medium">
                               <DollarSign className="w-4 h-4" />
                               {step.price} INR
@@ -267,7 +267,7 @@ export default function BatchDetails() {
 
                         {!step.price && !step.actor && (
                           <div className="text-sm text-slate-400 italic">
-                            Verified on blockchain
+                            {t('batchDetails.verifiedOnChain')}
                           </div>
                         )}
                       </div>
