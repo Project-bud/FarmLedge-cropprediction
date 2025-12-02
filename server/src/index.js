@@ -152,8 +152,6 @@ async function processCheckoutSession(session) {
 
   if (toAddress && /^0x[0-9a-fA-F]{40}$/.test(toAddress)) {
     try {
-      console.log(`[process-session] Processing batch ${batchId}. isComplete=${isComplete}, isSplit=${isSplit}, splitQty=${meta.splitQuantity}`)
-
       if (isSplit) {
         // Handle Batch Splitting
         const splitQty = BigInt(meta.splitQuantity || 0)
@@ -189,15 +187,12 @@ async function processCheckoutSession(session) {
             args: [batchId, splitQty, toAddress]
           })
           const receipt = await client.waitForTransactionReceipt({ hash: tx })
-          console.log(`[process-session] Split batch ${batchId} -> new owner ${toAddress} (qty=${splitQty})`)
-
           // 3. Update Parent Batch Price (Proportional Reduction)
           // New Price = Old Price *
           if (parentQty > 0n && parentMinPrice > 0n) {
             const newParentQty = parentQty - splitQty
             if (newParentQty > 0n) {
               const newParentPrice = parentMinPrice 
-              console.log(`[process-session] Adjusting parent batch ${batchId} price: ${parentMinPrice} -> ${newParentPrice} (Qty: ${parentQty} -> ${newParentQty})`)
               try {
                 const priceTx = await wallet.writeContract({
                   address: CONTRACT_ADDRESS,
@@ -206,7 +201,6 @@ async function processCheckoutSession(session) {
                   args: [batchId, newParentPrice]
                 })
                 await client.waitForTransactionReceipt({ hash: priceTx })
-                console.log(`[process-session] Parent batch price updated`)
               } catch (e) {
                 console.error('[process-session] Failed to update parent batch price', e)
               }
@@ -243,7 +237,6 @@ async function processCheckoutSession(session) {
                  }
                  
                  if (childDistributorPrice > 0n) {
-                    console.log(`[process-session] Setting historical distributor price on consumer batch ${newBatchId}: ${childDistributorPrice}`)
                     const setTx1 = await wallet.writeContract({
                       address: CONTRACT_ADDRESS,
                       abi: AGRI_TRUTH_CHAIN_ABI,
@@ -253,7 +246,6 @@ async function processCheckoutSession(session) {
                     await client.waitForTransactionReceipt({ hash: setTx1 })
                  }
                  if (childRetailerPrice > 0n) {
-                    console.log(`[process-session] Setting historical retailer price on consumer batch ${newBatchId}: ${childRetailerPrice}`)
                     const setTx2 = await wallet.writeContract({
                       address: CONTRACT_ADDRESS,
                       abi: AGRI_TRUTH_CHAIN_ABI,
@@ -266,13 +258,11 @@ async function processCheckoutSession(session) {
 
             // Set resale price on the child batch if provided
             const resalePricePerKg = meta?.resalePricePerKg
-            console.log(`[process-session] Split price check: resalePricePerKg=${resalePricePerKg}, role=${role}`)
             if (resalePricePerKg && Number(resalePricePerKg) > 0) {
               const resalePriceTotal = BigInt(Math.ceil(Number(resalePricePerKg) ))
 
               // Set price based on buyer's role
               if (role === 'distributor') {
-                console.log(`[process-session] Setting distributor price on child batch ${newBatchId} to ${resalePriceTotal}`)
                 const setTx = await wallet.writeContract({
                   address: CONTRACT_ADDRESS,
                   abi: AGRI_TRUTH_CHAIN_ABI,
@@ -280,7 +270,6 @@ async function processCheckoutSession(session) {
                   args: [newBatchId, resalePriceTotal]
                 })
                 await client.waitForTransactionReceipt({ hash: setTx })
-                console.log(`[process-session] Set distributor price on child batch ${newBatchId}: ${resalePriceTotal}`)
               } else if (role === 'retailer') {
                 // Calculate proportional distributor price for this child batch
                 let childDistributorPrice = 0n
@@ -306,7 +295,6 @@ async function processCheckoutSession(session) {
                   args: [newBatchId, resalePriceTotal]
                 })
                 await client.waitForTransactionReceipt({ hash: setTx2 })
-                console.log(`[process-session] Set retailer price on child batch ${newBatchId}: ${resalePriceTotal}`)
               }
             }
           }
@@ -320,7 +308,6 @@ async function processCheckoutSession(session) {
         if (!alreadyOwner) {
           const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'transferOwnershipByVerifier', args: [batchId, toAddress] })
           await client.waitForTransactionReceipt({ hash: tx })
-          console.log(`[process-session] Transferred batch ${batchId} -> ${toAddress}`)
         }
       }
     } catch (e) {
@@ -338,16 +325,13 @@ async function processCheckoutSession(session) {
       const pInrMeta = meta?.distributorPriceINR
       const pInr = pInrMeta != null && String(pInrMeta).trim() !== '' ? BigInt(String(pInrMeta)) : 0n
       if (pInr > 0n) {
-        console.log(`[process-session] Setting distributor price for batch ${batchId} to ${pInr}`)
         const latest = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [batchId] })
         const current = latest?.[14]
         const same = (current?.toString?.() || '') === pInr.toString()
         if (!same) {
           const setTx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setPriceByDistributorInr', args: [batchId, pInr] })
           await client.waitForTransactionReceipt({ hash: setTx })
-          console.log(`[process-session] Price updated successfully`)
         } else {
-          console.log(`[process-session] Price already set to ${pInr}`)
         }
       }}
     } else if (role === 'retailer') {
@@ -374,12 +358,10 @@ async function processCheckoutSession(session) {
 app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature']
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-  console.log('[webhook] Received signature:', sig)
   let event
   try {
     // TEMPORARY: Disable signature verification for local testing
     event = JSON.parse(req.body.toString())
-    console.log('[webhook] Signature verification DISABLED for local testing')
   } catch (err) {
     console.error('Webhook parsing failed', err.message)
     return res.status(400).send(`Webhook Error: ${err.message}`)
@@ -395,7 +377,6 @@ app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, r
 
     if (event.type === 'checkout.session.completed') {
       await processCheckoutSession(session)
-      console.log('Checkout complete for session', session.id)
     }
     res.json({ received: true })
   } catch (e) {
