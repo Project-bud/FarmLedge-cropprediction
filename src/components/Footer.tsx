@@ -27,7 +27,7 @@ const Footer = () => {
               </div>
               <div>
                 <h3 className="font-bold text-lg">FarmLedge</h3>
-                <p className="text-sm text-muted-foreground">Transparency Platform</p>
+                <p className="text-sm text-muted-foreground">{t('footer.platform')}</p>
               </div>
             </div>
             <p className="text-muted-foreground max-w-sm">
@@ -35,7 +35,7 @@ const Footer = () => {
             </p>
             <Badge className="bg-success/10 text-success border-success/20">
               <Shield className="w-3 h-3 mr-1" />
-              Blockchain Verified
+              {t('hero.trust3')}
             </Badge>
           </div>
 
@@ -58,7 +58,7 @@ const Footer = () => {
               <li>
                 <HoverCard>
                   <HoverCardTrigger asChild>
-                    <a href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
+                    <a href="/how-it-works" className="hover:text-foreground transition-colors">{t('nav.howItWorks')}</a>
                   </HoverCardTrigger>
                   <HoverCardContent>
                     <div className="space-y-2">
@@ -75,7 +75,7 @@ const Footer = () => {
               <li>
                 <HoverCard>
                   <HoverCardTrigger asChild>
-                    <a href="/blockchain-guide" className="hover:text-foreground transition-colors">Blockchain Guide</a>
+                    <a href="/blockchain-guide" className="hover:text-foreground transition-colors">{t('nav.blockchainGuide')}</a>
                   </HoverCardTrigger>
                   <HoverCardContent>
                     <div className="space-y-2">
@@ -93,7 +93,7 @@ const Footer = () => {
               <li>
                 <HoverCard>
                   <HoverCardTrigger asChild>
-                    <a href="/fair-trade" className="hover:text-foreground transition-colors">Fair Trade Info</a>
+                    <a href="/fair-trade" className="hover:text-foreground transition-colors">{t('nav.fairTrade')}</a>
                   </HoverCardTrigger>
                   <HoverCardContent>
                     <div className="space-y-2">
@@ -116,7 +116,7 @@ const Footer = () => {
                       rel="noopener noreferrer"
                       className="hover:text-foreground transition-colors"
                     >
-                      API Documentation
+                      {t('nav.apiDocs')}
                     </a>
                   </HoverCardTrigger>
                   <HoverCardContent>
@@ -135,7 +135,7 @@ const Footer = () => {
               <li>
                 <HoverCard>
                   <HoverCardTrigger asChild>
-                    <a href="/support" className="hover:text-foreground transition-colors">Support Center</a>
+                    <a href="/support" className="hover:text-foreground transition-colors">{t('nav.support')}</a>
                   </HoverCardTrigger>
                   <HoverCardContent>
                     <div className="space-y-2">

@@ -1,6 +1,6 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,10 @@ import TestingAddresses from "@/components/TestingAddresses";
 import { DEFAULT_ADDRESSES, isHexAddress } from "@/lib/addresses";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShoppingBag, User, RefreshCw, AlertCircle, ArrowRight, Tag } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Consumers = () => {
   const [batches, setBatches] = useState<any[]>([]);
@@ -211,94 +214,197 @@ const Consumers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50/50 font-sans">
       <Navigation />
       <main className="container mx-auto px-4 py-24 sm:py-28 space-y-8">
-        <h1 className="text-2xl sm:text-3xl font-bold">{t('consumers.title')}</h1>
-        <TestingAddresses />
-        <Card className="p-6 space-y-4">
-          <h2 className="font-semibold">{t('consumers.browse')}</h2>
-          {!!msg && <div className="text-sm text-red-600">{msg}</div>}
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Select Batch</Label>
-              <select className="border rounded px-3 py-2 w-full" value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)}>
-                <option value="">{t('consumers.selectBatch')}</option>
-                {available.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.id} • {b.cropType || "—"} • {b.quantityKg}kg • ₹{b.priceByRetailerINR || b.minPriceINR || "0"}/kg
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-slate-900">{t('consumers.title')}</h1>
+            <p className="text-slate-500 mt-1">Buy fresh, verified produce directly from retailers.</p>
+          </div>
+          <Button variant="outline" onClick={fetchBatches} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh Market
+          </Button>
+        </div>
 
-            {selectedBatch && (
-              <>
-                <div className="p-3 bg-muted rounded-md text-sm">
-                  <p><strong>Available:</strong> {selectedBatchData?.quantityKg} kg</p>
-                  <p><strong>Price per kg:</strong> ₹{pricePerKg.toFixed(2)}</p>
-                </div>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column: Marketplace */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="h-[600px] flex flex-col shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-purple-600" />
+                  Retail Listings
+                </CardTitle>
+                <CardDescription>Fresh produce available for purchase.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 p-0 overflow-hidden">
+                <ScrollArea className="h-full">
+                  {available.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-64 text-slate-400 p-8 text-center">
+                      <ShoppingBag className="w-12 h-12 mb-3 opacity-20" />
+                      <p>No produce available from retailers right now.</p>
+                      <p className="text-sm">Check back later or refresh.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {available.map((b: any) => {
+                        const isSelected = String(b.id) === String(selectedBatch);
+                        const price = Number(b.priceByRetailerINR || b.minPriceINR || b.basePriceINR || 0);
+                        
+                        return (
+                          <div 
+                            key={b.id} 
+                            className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-between gap-4 ${isSelected ? 'bg-purple-50/50 hover:bg-purple-50' : ''}`}
+                            onClick={() => setSelectedBatch(String(b.id))}
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-500'}`}>
+                                <Tag className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-medium text-slate-900">#{b.id}</span>
+                                  <Badge variant="secondary" className="text-xs font-normal">{b.cropType}</Badge>
+                                </div>
+                                <div className="text-sm text-slate-500 mt-1">
+                                  {b.quantityKg} kg available • ₹{price}/kg
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Button 
+                                size="sm" 
+                                variant={isSelected ? "default" : "ghost"}
+                                className={isSelected ? "bg-purple-600 hover:bg-purple-700" : ""}
+                              >
+                                {isSelected ? "Selected" : "Select"}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="completeBatch"
-                    checked={completeBatch}
-                    onCheckedChange={(checked) => setCompleteBatch(checked as boolean)}
-                  />
-                  <Label htmlFor="completeBatch" className="cursor-pointer text-sm font-medium">
-                    Purchase Complete Batch
-                  </Label>
-                </div>
+          {/* Right Column: Purchase Form */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="border-t-4 border-t-purple-500 shadow-md sticky top-28">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-purple-600" />
+                  Your Cart
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!selectedBatch ? (
+                  <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border border-dashed">
+                    <ArrowRight className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                    <p className="text-sm">Select produce to purchase.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-100 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Selected Batch</span>
+                        <span className="font-mono font-medium">#{selectedBatch}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Available Qty</span>
+                        <span className="font-medium">{selectedBatchData?.quantityKg} kg</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Price</span>
+                        <span className="font-medium">₹{pricePerKg.toFixed(2)}/kg</span>
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Quantity to Purchase (kg)</Label>
-                  <Input
-                    type="number"
-                    value={buyQuantity}
-                    onChange={(e) => setBuyQuantity(e.target.value)}
-                    placeholder={`Max ${selectedBatchData?.quantityKg}`}
-                    max={selectedBatchData?.quantityKg}
-                    min={1}
-                    disabled={completeBatch}
-                  />
-                </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="completeBatch"
+                          checked={completeBatch}
+                          onCheckedChange={(checked) => setCompleteBatch(checked as boolean)}
+                        />
+                        <Label htmlFor="completeBatch" className="cursor-pointer text-sm font-medium">
+                          Buy Full Batch
+                        </Label>
+                      </div>
 
-                <div className="p-3 bg-muted rounded-md">
-                  <p className="text-sm font-semibold">Total Price: ₹{totalPrice.toLocaleString()}</p>
-                </div>
-              </>
-            )}
+                      <div className="space-y-2">
+                        <Label>Quantity (kg)</Label>
+                        <Input
+                          type="number"
+                          value={buyQuantity}
+                          onChange={(e) => setBuyQuantity(e.target.value)}
+                          placeholder="0"
+                          max={selectedBatchData?.quantityKg}
+                          min={1}
+                          disabled={completeBatch}
+                        />
+                      </div>
 
-            <div className="flex items-end gap-2 flex-wrap">
-              <Button onClick={pay} disabled={paying || !selectedBatch || !buyQuantity}>
-                {paying ? t('consumers.starting') : t('consumers.buttons.pay')}
-              </Button>
-              <Button variant="ghost" onClick={fetchBatches}>
-                {t('consumers.buttons.refresh')}
-              </Button>
-            </div>
+                      <Separator />
+
+                      <div className="flex justify-between items-end">
+                        <span className="text-sm font-medium text-slate-700">Total Cost</span>
+                        <span className="text-2xl font-bold text-slate-900">₹{totalPrice.toLocaleString()}</span>
+                      </div>
+
+                      {!!msg && (
+                        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+                          <AlertCircle className="w-4 h-4" />
+                          {msg}
+                        </div>
+                      )}
+
+                      <Button 
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={pay}
+                        disabled={paying || !buyQuantity}
+                      >
+                        {paying ? (
+                          <>Processing...</>
+                        ) : (
+                          <>
+                            Pay & Consume
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-slate-500">Buyer Wallet Address (For Testing)</Label>
+                        <Input
+                          className="h-8 text-xs font-mono"
+                          placeholder="0x..."
+                          value={buyerAddress}
+                          onChange={(e) => {
+                            setBuyerAddress(e.target.value);
+                            if (addrError) validateAddress(e.target.value);
+                          }}
+                        />
+                        {!!addrError && <div className="text-xs text-red-600">{addrError}</div>}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
             
-            {available.length === 0 && (
-              <div className="text-sm text-muted-foreground">{t('consumers.noneAvailable')}</div>
-            )}
+            <div className="bg-slate-100 p-4 rounded-lg border border-slate-200">
+              <h4 className="font-semibold text-sm mb-2 text-slate-700">Dev Tools</h4>
+              <TestingAddresses />
+            </div>
           </div>
-        </Card>
-
-        <Card className="p-6 space-y-4">
-          <div className="space-y-2">
-            <Label>{t('consumers.buyerAddress')}</Label>
-            <Input
-              placeholder="0x..."
-              value={buyerAddress}
-              onChange={(e) => {
-                setBuyerAddress(e.target.value);
-                if (addrError) validateAddress(e.target.value);
-              }}
-            />
-            {!!addrError && <div className="text-xs text-red-600">{addrError}</div>}
-          </div>
-        </Card>
+        </div>
       </main>
       <Footer />
     </div>

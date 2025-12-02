@@ -566,8 +566,23 @@ app.get('/api/batches', async (req, res) => {
         if (!seen.has(id)) { seen.add(id); ids.push(id) }
       }
     }
+
+    // Support pagination
+    let idsArray = [...ids]
+    // Sort descending (newest first) assuming sequential IDs
+    idsArray.sort((a, b) => Number(b) - Number(a))
+    
+    const total = idsArray.length
+    const limit = req.query.limit ? parseInt(req.query.limit) : null
+    const page = req.query.page ? parseInt(req.query.page) : 1
+    
+    if (limit && limit > 0) {
+      const start = (page - 1) * limit
+      idsArray = idsArray.slice(start, start + limit)
+    }
+
     const vAll = readVerification()
-    const results = await Promise.all(ids.map(async (id) => {
+    const results = await Promise.all(idsArray.map(async (id) => {
       let b
       try {
         b = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [id] })
@@ -715,7 +730,7 @@ app.get('/api/batches', async (req, res) => {
         prices
       }
     }))
-    res.json({ batches: results })
+    res.json({ batches: results, total })
   } catch (e) {
     console.error('batches read failed', e)
     res.status(500).json({ error: 'read_failed' })

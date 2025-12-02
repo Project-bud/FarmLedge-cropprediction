@@ -23,12 +23,24 @@
     "email": "Email: support@agritruthchain.com",
     "description": "Revolutionizing agricultural supply chains with blockchain technology, ensuring transparent pricing and complete traceability from farm to fork.",
     "platform": "Platform",
-    "copyright": "© 2025 FarmLedge Transparency Platform. All rights reserved."
+    "copyright": "© 2025 FarmLedge Transparency Platform. All rights reserved.",
+    "brand": "FarmLedge Transparency Platform"
   },
   "index": {
     "title": "Recent Batches",
     "subtitle": "Latest on-chain records with current holder and prices.",
     "search": "Search by batch ID...",
+    "searchPlaceholder": "Enter Batch ID (e.g., 105)",
+    "trackButton": "Track",
+    "recentShipments": "Recent Shipments",
+    "liveUpdates": "Live updates from the blockchain network.",
+    "unknownCrop": "Unknown Crop",
+    "currentOwner": "Current Owner",
+    "lastUpdate": "Last Update",
+    "viewDetails": "View Details",
+    "product": "Product",
+    "priceHistory": "Price History",
+    "viewFullJourney": "View Full Journey",
     "noResults": "No batches found.",
     "details": "Details",
     "batch": "Batch",
@@ -39,7 +51,7 @@
     "retailerPrice": "Retailer Price",
     "harvest": "Harvest",
     "created": "Created",
-  "boughtBy": "Bought by",
+    "boughtBy": "Bought by",
     "crop": "Crop",
     "quantity": "Quantity",
     "prev": "Prev",
@@ -62,10 +74,14 @@
     "cancel": "Cancel"
   },
   "hero": {
-    "badge": "Blockchain Transparency",
+    "badge": "Blockchain Verified Supply Chain",
+    "titleMain": "From Farm to Fork,",
+    "titleSpan": "Verified.",
+    "description": "Track the complete journey of your food. Ensure authenticity, fair trade, and quality with our immutable blockchain ledger.",
+    "secure": "100% Secure",
+    "trusted": "Trusted by 500+ Farmers",
     "title1": "Farm to Fork",
     "title2": "Transparency",
-    "description": "Track every step of your food's journey. From the farmer's field to your plate, see transparent pricing, quality standards, and provenance in the agricultural supply chain.",
     "scanButton": "Scan Product",
     "learnMore": "Learn More",
     "trust1": "100% Transparent",
@@ -84,8 +100,7 @@
     "password": "Password",
     "continue": "Continue",
     "testNote": "Test-only: accepts any email/password. You'll need to logout to switch roles."
-  }
-  ,
+  },
   "verifier": {
     "title": "Verifier Dashboard",
     "reviewTitle": "Review & Verify Batches",
@@ -117,8 +132,7 @@
     "promptSecret": "Enter your verifier key (testing: any input is accepted)",
     "confirmTitle": "Confirm Verification",
     "secretLabel": "Verifier Key"
-  }
-  ,
+  },
   "farmers": {
     "title": "Farmer Dashboard",
     "form": {
