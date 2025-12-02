@@ -5,8 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock, QrCode, Copy, Link as LinkIcon, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,10 @@ import hero1 from "@/assets/hero1.jpg";
 import hero2 from "@/assets/hero2.jpg";
 import hero3 from "@/assets/hero3.jpg";
 import hero4 from "@/assets/hero4.jpg";
+import { QRCodeCanvas } from "qrcode.react";
+import { useToast } from "@/components/ui/use-toast";
+import { Label } from "@/components/ui/label";
+import { useRef } from "react";
 
 const HERO_IMAGES = [hero1, hero2, hero3, hero4];
 
@@ -21,6 +25,59 @@ const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { toast } = useToast();
+
+  // QR Modal state
+  const [qrOpen, setQrOpen] = useState(false);
+  const [batchId, setBatchId] = useState("");
+  const qrWrapRef = useRef<HTMLDivElement | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  useEffect(() => {
+    // Delay loading of secondary images to prioritize LCP
+    const t = setTimeout(() => setImagesLoaded(true), 1500);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Build destination using env-based site URL, fallback to current origin
+  const SITE_URL = (import.meta.env.VITE_SITE_URL as string) ||
+    (typeof window !== "undefined" ? window.location.origin : "");
+  const BASE_URL = `${SITE_URL.replace(/\/$/, "")}/batch?id=`;
+  // Sanitize id (digits only) but keep user's input for display
+  const sanitizedId = useMemo(() => batchId.replace(/\D/g, ""), [batchId]);
+  const hasInput = batchId.trim().length > 0;
+  const isValid = sanitizedId.length > 0;
+  const targetUrl = isValid ? `${BASE_URL}${encodeURIComponent(sanitizedId)}` : "";
+
+  const handleCopyUrl = async () => {
+    try {
+      if (!isValid) return;
+      await navigator.clipboard.writeText(targetUrl);
+      toast({ title: "Link copied", description: targetUrl, duration: 1800 });
+    } catch {
+      // no-op
+    }
+  };
+
+  const handleDownload = () => {
+    const canvas = qrWrapRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `batch-${sanitizedId || "qr"}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+  const handleShare = async () => {
+    try {
+      if (!isValid || typeof navigator === "undefined" || !navigator.share) return;
+      await navigator.share({ title: "AgriTruthChain Batch", text: `Batch #${sanitizedId}`, url: targetUrl });
+    } catch {
+      // user might cancel share; ignore
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -149,6 +206,18 @@ const Index = () => {
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     />
                     <Button 
+                      variant="ghost" 
+                      className="mr-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                      onClick={() => {
+                        setBatchId(search);
+                        setQrOpen(true);
+                      }}
+                      title="Generate QR"
+                    >
+                      <QrCode className="w-4 h-4 mr-2" />
+                      Generate QR
+                    </Button>
+                    <Button 
                       size="lg" 
                       className="bg-emerald-900 hover:bg-emerald-800 text-white rounded-lg px-8 h-12 text-base font-medium shadow-lg shadow-emerald-900/20"
                       onClick={handleSearch}
@@ -163,16 +232,21 @@ const Index = () => {
               <div className="relative hidden lg:block">
                 <div className="absolute inset-0 bg-emerald-900/5 rounded-3xl transform rotate-3"></div>
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[15/9]">
-                  {HERO_IMAGES.map((img, index) => (
-                    <img 
-                      key={img}
-                      src={img} 
-                      alt="Supply Chain Technology" 
-                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                        index === currentImageIndex ? "opacity-100 scale-105" : "opacity-0 scale-100"
-                      }`}
-                    />
-                  ))}
+                  {HERO_IMAGES.map((img, index) => {
+                    // Only render the first image immediately. Render others after delay.
+                    if (index > 0 && !imagesLoaded) return null;
+                    return (
+                      <img 
+                        key={img}
+                        src={img} 
+                        alt="Supply Chain Technology" 
+                        loading={index === 0 ? "eager" : "lazy"}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                          index === currentImageIndex ? "opacity-100 scale-105" : "opacity-0 scale-100"
+                        }`}
+                      />
+                    );
+                  })}
                   <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent z-10"></div>
                   <div className="absolute bottom-8 left-8 text-white z-20">
                     <div className="flex items-center gap-2 mb-2">
@@ -348,6 +422,66 @@ const Index = () => {
               </Link>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Generator Modal */}
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Scan or Generate Product QR</DialogTitle>
+            <DialogDescription>
+              QR Code for Batch #{sanitizedId || "..."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 py-2">
+            <div className="flex flex-col items-center gap-3">
+              <div className="p-4 rounded-lg bg-muted border min-h-[268px] min-w-[268px] flex items-center justify-center" ref={qrWrapRef}>
+                {isValid ? (
+                  <QRCodeCanvas value={targetUrl} size={220} level="M" includeMargin />
+                ) : (
+                  <div className="flex flex-col items-center text-muted-foreground">
+                    <QrCode className="w-12 h-12 mb-2" />
+                    <span className="text-sm">Enter a valid batch ID to preview the QR</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground break-all text-center w-full">
+                {isValid ? (
+                  <a href={targetUrl} target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline">
+                    {targetUrl}
+                  </a>
+                ) : (
+                  `${BASE_URL}<id>`
+                )}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-between sm:items-center">
+            <div className="flex flex-wrap gap-2 order-2 sm:order-1">
+              <Button variant="outline" size="sm" onClick={handleCopyUrl} disabled={!isValid}>
+                <Copy className="w-4 h-4 mr-1" /> Copy URL
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownload} disabled={!isValid}>
+                <Download className="w-4 h-4 mr-1" /> Download QR
+              </Button>
+              <a href={isValid ? targetUrl : undefined} target="_blank" rel="noreferrer noopener">
+                <Button variant="ghost" size="sm" disabled={!isValid}>
+                  <LinkIcon className="w-4 h-4 mr-1" /> Open Link
+                </Button>
+              </a>
+              {typeof navigator !== "undefined" && (navigator as any).share ? (
+                <Button variant="ghost" size="sm" onClick={handleShare} disabled={!isValid}>
+                  <LinkIcon className="w-4 h-4 mr-1" /> Share
+                </Button>
+              ) : null}
+            </div>
+            <div className="order-1 sm:order-2">
+              <Button onClick={() => setQrOpen(false)}>Close</Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
