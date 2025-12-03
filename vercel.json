@@ -1,7 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://farmledge-models.onrender.com/api/$1" },
-    { "source": "/create-checkout-session", "destination": "https://farmledge-models.onrender.com/create-checkout-session" },
+    { "source": "/api/(.*)", "destination": "https://farmledge-expire-alert.onrender.com/api/$1" },
+    { "source": "/create-checkout-session", "destination": "https://farmledge-expire-alert.onrender.com/create-checkout-session" },
     { "source": "/((?!api|create-checkout-session|.*\\..*).*)", "destination": "/" }
   ]
 }
