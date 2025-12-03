@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 
 const Farmers = () => {
-  const [form, setForm] = useState<{ cropType: string; quantityKg: string; basePricePerKg: string; harvestDate: string; farmerAddress: string }>({ cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", farmerAddress: DEFAULT_ADDRESSES.FARMER as string });
+  const [form, setForm] = useState<{ cropType: string; quantityKg: string; basePricePerKg: string; harvestDate: string; farmerAddress: string; expiryDate: string }>({ cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", farmerAddress: DEFAULT_ADDRESSES.FARMER as string, expiryDate: "" });
   const [page, setPage] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const nav = useNavigate();
@@ -57,7 +57,8 @@ const Farmers = () => {
   const { data: batchesData, isLoading, refetch } = useQuery({
     queryKey: ['batches', form.farmerAddress, page],
     queryFn: async () => {
-      const res = await fetch(`/api/batches?limit=5&page=${page}&farmer=${form.farmerAddress}`);
+      // Use currentOwner filter to show only batches currently held by this address
+      const res = await fetch(`/api/batches?limit=5&page=${page}&currentOwner=${form.farmerAddress}`);
       if (!res.ok) throw new Error('Failed to fetch batches');
       return res.json();
     },
@@ -124,6 +125,10 @@ const Farmers = () => {
         toast.error(t('farmers.errors.chooseHarvest')); 
         return 
       }
+      if (!form.expiryDate) { 
+        toast.error(t('farmers.errors.chooseExpiry')); 
+        return 
+      }
       
       const farmerAddress = form.farmerAddress?.trim() || DEFAULT_ADDRESSES.FARMER
       if (!isHexAddress(farmerAddress)) { 
@@ -134,11 +139,12 @@ const Farmers = () => {
       const basePriceINR = Math.round(basePricePerKg) // total ₹ for batch
       const minPriceINR = basePriceINR // simple default; can add UI later
       const harvestDateSec = Math.floor(new Date(form.harvestDate).getTime() / 1000)
+      const expiryDateSec = Math.floor(new Date(form.expiryDate).getTime() / 1000)
       
       const res = await fetch('/api/register-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cropType: form.cropType, quantityKg, basePriceINR, minPriceINR, harvestDate: harvestDateSec, metadataCID: '' , farmerAddress })
+        body: JSON.stringify({ cropType: form.cropType, quantityKg, basePriceINR, minPriceINR, harvestDate: harvestDateSec, metadataCID: '' , farmerAddress, expiryDate: expiryDateSec })
       })
       
       const data = await res.json()
@@ -152,7 +158,7 @@ const Farmers = () => {
         // Navigate to details for immediate feedback
         nav(`/batch?id=${encodeURIComponent(data.batchId)}`)
       }
-      setForm({ ...form, cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "" });
+      setForm({ ...form, cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", expiryDate: "" });
     } catch (e: any) { 
       console.error(e); 
       toast.error(`${t('farmers.errors.registerFailed')}${e?.message ? `: ${e.message}` : ''}`); 
@@ -283,16 +289,30 @@ const Farmers = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>{t('farmers.form.harvestDate')}</Label>
-                  <div className="relative">
-                    <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                      className="pl-9" 
-                      type="date" 
-                      value={form.harvestDate} 
-                      onChange={(e) => setForm({ ...form, harvestDate: e.target.value })} 
-                    />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>{t('farmers.form.harvestDate')}</Label>
+                    <div className="relative">
+                      <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input 
+                        className="pl-9" 
+                        type="date" 
+                        value={form.harvestDate} 
+                        onChange={(e) => setForm({ ...form, harvestDate: e.target.value })} 
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t('farmers.form.expiryDate')}</Label>
+                    <div className="relative">
+                      <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input 
+                        className="pl-9" 
+                        type="date" 
+                        value={form.expiryDate} 
+                        onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} 
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -360,6 +380,7 @@ const Farmers = () => {
                             <TableHead>Batch ID</TableHead>
                             <TableHead>Crop</TableHead>
                             <TableHead>Harvest Date</TableHead>
+                            <TableHead>Use-By Date</TableHead>
                             <TableHead className="text-right">Qty (kg)</TableHead>
                             <TableHead className="text-right">Price/Kg</TableHead>
                             <TableHead className="text-right">Action</TableHead>
@@ -372,11 +393,12 @@ const Farmers = () => {
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                                    {t(`crops.${b.cropType}`) || b.cropType}
+                                    {t(`${b.cropType}`) || b.cropType}
                                   </Badge>
                                 </div>
                               </TableCell>
                               <TableCell>{new Date(b.harvestDate * 1000).toLocaleDateString()}</TableCell>
+                              <TableCell>{b.expiryDate ? new Date(b.expiryDate * 1000).toLocaleDateString() : '-'}</TableCell>
                               <TableCell className="text-right">{b.quantityKg}</TableCell>
                               <TableCell className="text-right">₹{b.basePriceINR}</TableCell>
                               <TableCell className="text-right">

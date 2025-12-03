@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock, QrCode, Copy, Link as LinkIcon, Download } from "lucide-react";
+import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock, QrCode, Copy, Link as LinkIcon, Download, Tractor, Store, ShoppingCart, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -20,6 +20,53 @@ import { Label } from "@/components/ui/label";
 import { useRef } from "react";
 
 const HERO_IMAGES = [hero1, hero2, hero3, hero4];
+
+const CROP_IMAGES: Record<string, string> = {
+  "banana": "https://images.unsplash.com/photo-1528825871115-3581a5387919?q=80&w=2070&auto=format&fit=crop",
+  "banana - green": "https://images.unsplash.com/photo-1603833665858-e61d17a86224?q=80&w=2070&auto=format&fit=crop",
+  "beans": "https://images.unsplash.com/photo-1567306301408-9b74779a11af?q=80&w=2070&auto=format&fit=crop",
+  "bitter gourd": "https://images.unsplash.com/photo-1628773822503-93038c063306?q=80&w=2070&auto=format&fit=crop",
+  "brinjal": "https://images.unsplash.com/photo-1613881553903-4543f5f2cac9?q=80&w=2070&auto=format&fit=crop",
+  "cabbage": "https://images.unsplash.com/photo-1591586007768-40725cc562a1?q=80&w=2110&auto=format&fit=crop",
+  "calf": "https://images.unsplash.com/photo-1546445317-29f4545e9d53?q=80&w=2070&auto=format&fit=crop",
+  "capsicum": "https://images.unsplash.com/photo-1563565375-f3fdf5d6c465?q=80&w=2070&auto=format&fit=crop",
+  "carrot": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?q=80&w=1887&auto=format&fit=crop",
+  "cashewnuts": "https://images.unsplash.com/photo-1536591375315-196000ea3646?q=80&w=2070&auto=format&fit=crop",
+  "cauliflower": "https://images.unsplash.com/photo-1568584711075-3d021a7c3ca3?q=80&w=2070&auto=format&fit=crop",
+  "chili red": "https://images.unsplash.com/photo-1588252303782-cb80119abd6d?q=80&w=2070&auto=format&fit=crop",
+  "coconut": "https://images.unsplash.com/photo-1544376798-89aa6b82c6cd?q=80&w=2070&auto=format&fit=crop",
+  "cow": "https://images.unsplash.com/photo-1546445317-29f4545e9d53?q=80&w=2070&auto=format&fit=crop",
+  "dry chillies": "https://images.unsplash.com/photo-1601648764658-ad3793bc91a9?q=80&w=2070&auto=format&fit=crop",
+  "fish": "https://images.unsplash.com/photo-1535591273668-578e31182c4f?q=80&w=2070&auto=format&fit=crop",
+  "garlic": "https://images.unsplash.com/photo-1615485500704-8e99099928b3?q=80&w=2070&auto=format&fit=crop",
+  "green chilli": "https://images.unsplash.com/photo-1601648764658-ad3793bc91a9?q=80&w=2070&auto=format&fit=crop",
+  "ground nut seed": "https://images.unsplash.com/photo-1567496898669-ee935f5f647a?q=80&w=2071&auto=format&fit=crop",
+  "groundnut": "https://images.unsplash.com/photo-1567496898669-ee935f5f647a?q=80&w=2071&auto=format&fit=crop",
+  "hen": "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1974&auto=format&fit=crop",
+  "jack fruit": "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?q=80&w=2070&auto=format&fit=crop",
+  "jute": "https://images.unsplash.com/photo-1610970881699-44a5587cabec?q=80&w=2070&auto=format&fit=crop",
+  "mango": "https://images.unsplash.com/photo-1553279768-865429fa0078?q=80&w=2070&auto=format&fit=crop",
+  "mustard": "https://images.unsplash.com/photo-1508595165502-3e2652e5a405?q=80&w=2070&auto=format&fit=crop",
+  "onion": "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?q=80&w=2070&auto=format&fit=crop",
+  "ox": "https://images.unsplash.com/photo-1546445317-29f4545e9d53?q=80&w=2070&auto=format&fit=crop",
+  "papaya": "https://images.unsplash.com/photo-1617112848923-cc2234396a8d?q=80&w=2070&auto=format&fit=crop",
+  "peas cod": "https://images.unsplash.com/photo-1592323360831-5f1f68947868?q=80&w=2070&auto=format&fit=crop",
+  "potato": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=2070&auto=format&fit=crop",
+  "pumpkin": "https://images.unsplash.com/photo-1570586437263-160f0d1e813d?q=80&w=2070&auto=format&fit=crop",
+  "raddish": "https://images.unsplash.com/photo-1593157923663-27248b238446?q=80&w=2070&auto=format&fit=crop",
+  "rice": "https://images.unsplash.com/photo-1586201375761-83865001e31c?q=80&w=2070&auto=format&fit=crop",
+  "tomato": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?q=80&w=2070&auto=format&fit=crop",
+  "water melon": "https://images.unsplash.com/photo-1587049352846-4a222e784d38?q=80&w=2070&auto=format&fit=crop",
+  "wheat": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?q=80&w=2070&auto=format&fit=crop",
+  "corn": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=2070&auto=format&fit=crop",
+  "maize": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=2070&auto=format&fit=crop",
+  "apple": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?q=80&w=2074&auto=format&fit=crop"
+};
+
+const getCropImage = (cropType: string | undefined) => {
+  const type = (cropType || "").toLowerCase();
+  return CROP_IMAGES[type] || "https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?q=80&w=2070&auto=format&fit=crop";
+};
 
 const Index = () => {
   const { t } = useTranslation();
@@ -100,6 +147,7 @@ const Index = () => {
     consumer?: string;
     currentOwner?: string;
     harvestDate?: number | string;
+    expiryDate?: number | string;
     createdAt?: number | string;
     metadataCID?: string;
     boughtByDistributorAt?: number | string;
@@ -165,6 +213,14 @@ const Index = () => {
     return "holder" as const;
   };
 
+  const getProgress = (b: Batch) => {
+    const role = ownerRoleKey(b);
+    if (role === 'consumer') return 100;
+    if (role === 'retailer') return 75;
+    if (role === 'distributor') return 50;
+    return 25;
+  };
+
   const openDetails = (b: Batch) => { setSelected(b); setOpen(true); };
 
   return (
@@ -172,97 +228,89 @@ const Index = () => {
       <Navigation />
       
       <main>
-        {/* Hero Section - Split Layout */}
-        <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-          <div className="container mx-auto px-4 sm:px-6 relative z-10">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        {/* Hero Section - Full Width Background */}
+        <section className="relative h-[900px] flex items-center overflow-hidden">
+          {/* Background Slideshow */}
+          <div className="absolute inset-0 z-0">
+            {HERO_IMAGES.map((img, index) => {
+              if (index > 0 && !imagesLoaded) return null;
+              return (
+                <img 
+                  key={img}
+                  src={img} 
+                  alt="Supply Chain Background" 
+                  loading={index === 0 ? "eager" : "lazy"}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                    index === currentImageIndex ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              );
+            })}
+            {/* Dark Overlay */}
+            <div className="absolute inset-0 bg-black/60 z-10"></div>
+          </div>
+
+          <div className="container mx-auto px-4 sm:px-6 relative z-20">
+            <div className="max-w-3xl">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight mb-6">
+                {t('hero.titleMain')}<br />
+                <span className="text-emerald-400">{t('hero.titleSpan')}</span>
+              </h1>
               
-              {/* Left: Text Content */}
-              <div className="space-y-8 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100/50 border border-emerald-200 text-emerald-800 text-sm font-medium">
-                  <Leaf className="w-4 h-4" />
-                  <span>{t('hero.badge')}</span>
-                </div>
-                
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-serif font-bold text-emerald-900 leading-[1.1]">
-                  {t('hero.titleMain')} <span className="text-emerald-600">{t('hero.titleSpan')}</span>
-                </h1>
-                
-                <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                  {t('hero.description')}
-                </p>
+              <p className="text-lg sm:text-xl text-slate-200 mb-10 max-w-2xl leading-relaxed">
+                {t('hero.description')}
+              </p>
 
-                {/* Massive Search Bar */}
-                <div className="max-w-xl mx-auto lg:mx-0 relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-300 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                  <div className="relative flex items-center bg-white rounded-xl shadow-xl border border-slate-100 p-2">
-                    <Search className="w-6 h-6 text-slate-400 ml-3" />
-                    <input 
-                      type="text"
-                      placeholder={t('index.searchPlaceholder')}
-                      className="flex-1 bg-transparent border-none focus:ring-0 text-lg px-4 py-3 text-slate-800 placeholder:text-slate-300"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button 
-                      variant="ghost" 
-                      className="mr-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
-                      onClick={() => {
-                        setBatchId(search);
-                        setQrOpen(true);
-                      }}
-                      title="Generate QR"
-                    >
-                      <QrCode className="w-4 h-4 mr-2" />
-                      Generate QR
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      className="bg-emerald-900 hover:bg-emerald-800 text-white rounded-lg px-8 h-12 text-base font-medium shadow-lg shadow-emerald-900/20"
-                      onClick={handleSearch}
-                    >
-                      {t('index.trackButton')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              {/* Search Bar */}
+<div className="w-full max-w-xl">
+  <div className="flex flex-wrap items-center gap-2 bg-white rounded-lg shadow-2xl p-2">
 
-              {/* Right: Abstract/Image */}
-              <div className="relative hidden lg:block">
-                <div className="absolute inset-0 bg-emerald-900/5 rounded-3xl transform rotate-3"></div>
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[15/9]">
-                  {HERO_IMAGES.map((img, index) => {
-                    // Only render the first image immediately. Render others after delay.
-                    if (index > 0 && !imagesLoaded) return null;
-                    return (
-                      <img 
-                        key={img}
-                        src={img} 
-                        alt="Supply Chain Technology" 
-                        loading={index === 0 ? "eager" : "lazy"}
-                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                          index === currentImageIndex ? "opacity-100 scale-105" : "opacity-0 scale-100"
-                        }`}
-                      />
-                    );
-                  })}
-                  <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent z-10"></div>
-                  <div className="absolute bottom-8 left-8 text-white z-20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                      <span className="font-medium text-emerald-100">{t('hero.secure')}</span>
-                    </div>
-                    <p className="text-2xl font-serif font-bold">{t('hero.trusted')}</p>
-                  </div>
-                </div>
-              </div>
+    {/* Search Icon */}
+    <Search className="w-5 h-5 text-slate-400 ml-2" />
+
+    {/* Input */}
+    <input
+      type="text"
+      placeholder={t("index.searchPlaceholder")}
+      className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-lg px-2 py-2 text-slate-800 placeholder:text-slate-400"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+    />
+
+    {/* QR Button */}
+    <Button
+      variant="ghost"
+      className="flex items-center gap-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 whitespace-nowrap"
+      onClick={() => {
+        setBatchId(search);
+        setQrOpen(true);
+      }}
+      title="Generate QR"
+    >
+      <QrCode className="w-5 h-5" />
+      Generate QR
+    </Button>
+
+    {/* Track Button */}
+    <Button
+      size="lg"
+      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-md px-6 h-11 text-base font-medium flex items-center gap-2 whitespace-nowrap"
+      onClick={handleSearch}
+    >
+      {t("index.trackButton")}
+      <ArrowRight className="w-4 h-4" />
+    </Button>
+
+  </div>
+</div>
+
             </div>
           </div>
         </section>
 
         {/* Recent Batches - Grid Layout */}
-        <section id="recent-batches" className="py-20 bg-white border-t border-slate-100">
+        <section id="recent-batches" className="py-20 bg-white">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="flex items-end justify-between mb-10">
               <div>
@@ -274,58 +322,80 @@ const Index = () => {
             {loading ? (
               <div className="grid md:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i} className="p-6 space-y-4 border-slate-100 shadow-sm">
-                    <Skeleton className="h-6 w-24" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-20 w-full rounded-lg" />
+                  <Card key={i} className="overflow-hidden border-slate-100 shadow-sm">
+                    <Skeleton className="h-48 w-full" />
+                    <div className="p-5 space-y-4">
+                      <Skeleton className="h-6 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-10 w-full rounded-lg" />
+                    </div>
                   </Card>
                 ))}
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {recentBatches.map((b) => (
                   <Card 
                     key={String(b.id)} 
-                    className="group relative p-6 bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
+                    className="group relative bg-white border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden rounded-xl"
                     onClick={() => openDetails(b)}
                   >
-                    <div className="absolute top-0 right-0 p-4">
-                      {b?.verification?.status === 'verified' ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200">{t('index.verified')}</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-slate-500 border-slate-200">{t('index.pending')}</Badge>
-                      )}
+                    {/* Image Header */}
+                    <div className="relative h-56 overflow-hidden">
+                      <img 
+                        src={getCropImage(b.cropType)} 
+                        alt={b.cropType}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+                      
+                      {/* Badges */}
+                      <div className="absolute bottom-3 left-3">
+                        <Badge className="bg-black/50 backdrop-blur-md text-white border-none font-mono">
+                          #{String(b.id)}
+                        </Badge>
+                      </div>
+                      <div className="absolute top-3 right-3">
+                        {b?.verification?.status === 'verified' ? (
+                          <Badge className="bg-emerald-500 text-white border-none flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" /> {t('index.verified')}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-400 text-amber-900 border-none flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> {t('index.pending')}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="mb-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-emerald-50 rounded-lg text-emerald-700">
-                          <Package className="w-5 h-5" />
+                    <div className="p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-xl font-serif font-bold text-slate-800 group-hover:text-emerald-800 transition-colors">
+                            {b.cropType || t('index.unknownCrop')}
+                          </h3>
+                          <p className="text-slate-500 text-sm mt-1 flex items-center gap-1">
+                            <User className="w-3 h-3" /> Owner: <span className="font-medium text-slate-700 capitalize">{t(`index.${ownerRoleKey(b)}`)}</span>
+                          </p>
                         </div>
-                        <span className="font-mono text-sm text-slate-400">#{String(b.id)}</span>
+                        <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+                          {b.quantityKg || 0} kg
+                        </Badge>
                       </div>
-                      <h3 className="text-xl font-serif font-bold text-slate-800 group-hover:text-emerald-800 transition-colors">
-                        {b.cropType || t('index.unknownCrop')}
-                      </h3>
-                      <p className="text-slate-500 text-sm mt-1">{b.quantityKg || 0} kg</p>
-                    </div>
 
-                    <div className="space-y-3 pt-4 border-t border-slate-50">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">{t('index.currentOwner')}</span>
-                        <span className="font-medium text-slate-700 capitalize">{t(`index.${ownerRoleKey(b)}`)}</span>
+                      {/* Progress Bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <span>FARMER</span>
+                          <span>CONSUMER</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
+                            style={{ width: `${getProgress(b)}%` }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">{t('index.lastUpdate')}</span>
-                        <span className="font-medium text-slate-700 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {b.createdAt ? new Date(Number(b.createdAt) * 1000).toLocaleDateString() : "—"}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-6 pt-4 flex items-center justify-between text-emerald-600 font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-                      {t('index.viewDetails')} <ArrowRight className="w-4 h-4" />
                     </div>
                   </Card>
                 ))}
@@ -395,6 +465,18 @@ const Index = () => {
               <div className="p-3 bg-stone-50 rounded-lg">
                 <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">{t('index.quantity')}</div>
                 <div className="font-medium text-slate-800 text-lg">{selected?.quantityKg} kg</div>
+              </div>
+              <div className="p-3 bg-stone-50 rounded-lg">
+                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Harvest Date</div>
+                <div className="font-medium text-slate-800 text-lg">
+                  {selected?.harvestDate ? new Date(Number(selected.harvestDate) * 1000).toLocaleDateString() : '-'}
+                </div>
+              </div>
+              <div className="p-3 bg-stone-50 rounded-lg">
+                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Use-By Date</div>
+                <div className="font-medium text-red-600 text-lg">
+                  {selected?.expiryDate ? new Date(Number(selected.expiryDate) * 1000).toLocaleDateString() : '-'}
+                </div>
               </div>
             </div>
             

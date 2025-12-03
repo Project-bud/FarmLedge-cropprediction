@@ -78,9 +78,9 @@
   },
   "hero": {
     "badge": "Blockchain Verified Supply Chain",
-    "titleMain": "From Farm to Fork,",
-    "titleSpan": "Verified.",
-    "description": "Track the complete journey of your food. Ensure authenticity, fair trade, and quality with our immutable blockchain ledger.",
+    "titleMain": "Trust in every grain.",
+    "titleSpan": "Verifiable from Farm to Fork.",
+    "description": "Enter a Batch ID to instantly trace the entire journey of your produce on the blockchain.",
     "secure": "100% Secure",
     "trusted": "Trusted by 500+ Farmers",
     "title1": "Farm to Fork",
@@ -145,6 +145,7 @@
       "quantityKg": "Quantity (kg)",
       "pricePerKg": "Farmer Price / kg (₹)",
       "harvestDate": "Harvest Date",
+      "expiryDate": "Use-By Date",
       "farmerAddress": "Farmer Address (EOA)"
     },
     "actions": {
@@ -153,7 +154,7 @@
     },
     "sections": {
       "myBatches": "My Batches",
-      "recentBatches": "Recent batches registered on the network.",
+      "recentBatches": "Recent batches registered on the network yet to sold.",
       "owner": "Owner:",
       "view": "View",
       "ownerAddress": "The Ethereum address that owns this batch."
@@ -168,6 +169,7 @@
       "enterQty": "Enter valid quantity (kg)",
       "enterPrice": "Enter farmer price per kg (₹)",
       "chooseHarvest": "Choose harvest date",
+      "chooseExpiry": "Choose use-by date",
       "enterEOA": "Enter a valid farmer EOA (0x...)",
       "registeredNoId": "Batch registered but batchId not decoded. Please refresh Batches list later.",
       "registerFailed": "Failed to register batch"
@@ -354,7 +356,7 @@
     "splitFrom": "This batch was split from a larger harvest (Batch #{{id}}).",
     "viewParent": "View Parent",
     "identity": "Identity",
-    "transactionPrice": "Transaction Price",
+    "transactionPrice": "Price demanded",
     "verifiedOnChain": "Verified on blockchain",
     "steps": {
       "farmerDesc": "Crop harvested and registered on blockchain",

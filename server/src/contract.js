@@ -10,7 +10,8 @@ export const AGRI_TRUTH_CHAIN_ABI = [
       { name: "quantityKg", type: "uint256" },
       { name: "basePriceINR", type: "uint256" },
       { name: "harvestDate", type: "uint64" },
-      { name: "metadataCID", type: "string" }
+      { name: "metadataCID", type: "string" },
+      { name: "expiryDate", type: "uint64" }
     ], outputs: [{ name: "batchId", type: "uint256" }]
   },
   {
@@ -19,7 +20,8 @@ export const AGRI_TRUTH_CHAIN_ABI = [
       { name: "quantityKg", type: "uint256" },
       { name: "basePriceINR", type: "uint256" },
       { name: "harvestDate", type: "uint64" },
-      { name: "metadataCID", type: "string" }
+      { name: "metadataCID", type: "string" },
+      { name: "expiryDate", type: "uint64" }
     ], outputs: [{ name: "batchId", type: "uint256" }]
   },
   { type: "function", name: "transferOwnership", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }, { name: "to", type: "address" }], outputs: [] },
@@ -61,7 +63,8 @@ export const AGRI_TRUTH_CHAIN_ABI = [
       { name: "verificationBy", type: "address" },
       { name: "verificationAt", type: "uint256" },
       { name: "parentId", type: "uint256" },
-      { name: "isSplit", type: "bool" }
+      { name: "isSplit", type: "bool" },
+      { name: "expiryDate", type: "uint64" }
     ]
   },
   { type: "function", name: "getAllBatchIds", stateMutability: "view", inputs: [], outputs: [{ type: "uint256[]" }] },
@@ -75,7 +78,8 @@ export const AGRI_TRUTH_CHAIN_ABI = [
       { name: "quantityKg", type: "uint256", indexed: false },
       { name: "basePriceINR", type: "uint256", indexed: false },
       { name: "harvestDate", type: "uint64", indexed: false },
-      { name: "metadataCID", type: "string", indexed: false }
+      { name: "metadataCID", type: "string", indexed: false },
+      { name: "expiryDate", type: "uint64", indexed: false }
     ], anonymous: false
   },
   {

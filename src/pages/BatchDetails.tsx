@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
+import { IndianRupee } from "lucide-react";
+
+
+
 import { 
   Sprout, 
   Truck, 
@@ -106,6 +110,7 @@ export default function BatchDetails() {
       role: t('batchDetails.labels.farmer'),
       icon: Sprout,
       date: batch.harvestDate || batch.createdAt,
+      expiryDate: batch.expiryDate,
       price: batch.minPriceINR || batch.basePriceINR,
       actor: batch.farmer,
       isCompleted: true,
@@ -120,8 +125,8 @@ export default function BatchDetails() {
       icon: Truck,
       date: batch.dates?.boughtByDistributor,
       price: batch.priceByDistributorINR,
-      actor: null, // We don't always have the distributor name in the simple view unless we fetch profiles
       isCompleted: !!batch.dates?.boughtByDistributor,
+      actor: batch.distributor,
       description: t('batchDetails.steps.distributorDesc'),
       color: "text-blue-600",
       bgColor: "bg-blue-100",
@@ -133,8 +138,8 @@ export default function BatchDetails() {
       icon: Store,
       date: batch.dates?.boughtByRetailer,
       price: batch.priceByRetailerINR,
-      actor: null,
       isCompleted: !!batch.dates?.boughtByRetailer,
+      actor: batch.retailer,
       description: t('batchDetails.steps.retailerDesc'),
       color: "text-amber-600",
       bgColor: "bg-amber-100",
@@ -239,10 +244,19 @@ export default function BatchDetails() {
                         <p className="text-sm text-slate-500 mt-1">{step.description}</p>
                       </div>
                       {isActive && step.date && (
-                        <Badge variant="secondary" className="w-fit flex items-center gap-1.5 font-mono text-xs">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(step.date * 1000).toLocaleDateString()}
-                        </Badge>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="w-fit flex items-center gap-1.5 font-mono text-xs">
+                            <Calendar className="w-3 h-3" />
+                            Harvest: {new Date(step.date * 1000).toLocaleDateString()}
+                          </Badge>
+                          {/* @ts-ignore */}
+                          {step.expiryDate && (
+                            <Badge variant="outline" className="w-fit flex items-center gap-1.5 font-mono text-xs text-red-600 border-red-200 bg-red-50">
+                              <Calendar className="w-3 h-3" />
+                              Expires: {new Date(step.expiryDate * 1000).toLocaleDateString()}
+                            </Badge>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -259,9 +273,10 @@ export default function BatchDetails() {
                           <div className="space-y-1">
                             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('batchDetails.transactionPrice')}</span>
                             <div className="flex items-center gap-1 text-emerald-700 font-medium">
-                              <DollarSign className="w-4 h-4" />
-                              {step.price} INR
+                              <IndianRupee className="w-4 h-4" />
+                              {step.price}
                             </div>
+                            
                           </div>
                         )}
 

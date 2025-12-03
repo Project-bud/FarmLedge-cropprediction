@@ -69,6 +69,17 @@ The following technologies power **FarmLedge**, along with their icons and usage
 - **Idempotent Webhooks**  
   Automatic duplicate-write protection (handles nonce errors).
 
+📅 Expiry & Notifications (New)
+
+- **Use-By Date Tracking**  
+  Farmers set an expiry date during registration. This date is stored on-chain and displayed across all dashboards (Distributor, Retailer, Consumer).
+- **Automated Expiry Alerts**  
+  A background cron job checks for batches nearing expiry and triggers an external n8n webhook.
+- **WhatsApp Integration**  
+  The n8n workflow sends WhatsApp notifications to stakeholders when their batches are about to expire.
+- **Visual Indicators**  
+  Red "Expires: [Date]" badges in the UI warn buyers of approaching expiry dates.
+
 🌱 Supply Chain Features (New)
 
 - **Batch Splitting**  
@@ -90,8 +101,10 @@ The following technologies power **FarmLedge**, along with their icons and usage
   Verified items cannot be edited; only allowed transitions between `unverified` and `pending` before final verify.
 - **i18n Coverage**  
   English, Tamil, Hindi, and Odia across Navigation, Hero, Login, Index, and Verifier flows.
+- **O(1) Crop Image Lookup**  
+  Instant image rendering for 30+ crop types using a hash map, replacing legacy conditional logic.
 
-�📦 Prerequisites
+📦 Prerequisites
 
 - **Node.js** ≥ 18  
 - **npm**  
@@ -120,7 +133,7 @@ cp server/.env.example server/.env
 # RELAYER_PRIVATE_KEY=your_funded_sepolia_private_key
 # OWNER_PRIVATE_KEY=optional_owner_key_for_verifier_setup
 # ARB_SEPOLIA_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc
-
+# N8N_WEBHOOK_SECRET=https://n8ndreampi.app.n8n.cloud/webhook/your-webhook-id
 # Start backend & frontend
 npm run server:dev     # runs backend on port 3001
 npm run dev            # runs frontend on port 8000

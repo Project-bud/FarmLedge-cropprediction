@@ -44,6 +44,7 @@ const ownerWallet = ownerAccount ? createWalletClient({ account: ownerAccount, c
 const CONTRACT_ADDRESS = (process.env.AGRI_TRUTH_CHAIN_ADDRESS || AGRI_TRUTH_CHAIN_ADDRESS)
 const isValidAddress = (addr) => typeof addr === 'string' && /^0x[0-9a-fA-F]{40}$/.test(addr)
 const isSameAddress = (a, b) => (a && b) ? a.toLowerCase() === b.toLowerCase() : false
+const N8N_WEBHOOK_SECRET = (process.env.N8N_WEBHOOK_SECRET || N8N_WEBHOOK_SECRET)
 // All pricing is INR on-chain now; Stripe expects amounts in INR paise (minor units)
 
 // Tiny cache for contract bytecode presence to avoid repeated RPC calls per request
@@ -109,6 +110,7 @@ if (account) {
 console.log(`[server] Contract address: ${CONTRACT_ADDRESS}`)
 console.log(`[server] Chain: arbitrum-sepolia (id=${arbitrumSepolia.id})`)
 console.log(`[server] RPC: ${rpcUrl || 'default provider'}`)
+console.log(`[server] n8n webhook: ${N8N_WEBHOOK_SECRET || 'not configured'}`)
 if (account && isValidAddress(CONTRACT_ADDRESS)) {
   client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'verifiers', args: [account.address] })
     .then(isVerifier => {
@@ -456,20 +458,21 @@ app.post('/api/register-batch', async (req, res) => {
   try {
     if (!wallet || !account) return res.status(500).json({ error: 'relayer_not_configured' })
     if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address', address: CONTRACT_ADDRESS })
-    const { cropType, quantityKg, basePriceINR, harvestDate, metadataCID, minPriceINR, farmerAddress } = req.body || {}
+    const { cropType, quantityKg, basePriceINR, harvestDate, metadataCID, minPriceINR, farmerAddress, expiryDate } = req.body || {}
     if (!cropType || String(cropType).trim() === '') return res.status(400).json({ error: 'missing_crop_type' })
     if (quantityKg == null || Number(quantityKg) <= 0) return res.status(400).json({ error: 'invalid_quantity' })
     if (!harvestDate || Number(harvestDate) <= 0) return res.status(400).json({ error: 'invalid_harvest_date' })
     const baseInr = BigInt(basePriceINR ?? 0)
     if (baseInr <= 0n) return res.status(400).json({ error: 'invalid_base_price' })
+    const expiry = expiryDate ? BigInt(expiryDate) : 0n
 
     // send registerBatch
     const wantsFor = farmerAddress && /^0x[0-9a-fA-F]{40}$/.test(farmerAddress)
     const metaCID = (metadataCID && String(metadataCID).trim() !== '') ? metadataCID : ('meta:' + JSON.stringify({
-      kind: 'registration', cropType, quantityKg: Number(quantityKg), basePriceINR: baseInr.toString(), harvestDate: Number(harvestDate), minPriceINR: (minPriceINR != null) ? BigInt(minPriceINR).toString() : undefined
+      kind: 'registration', cropType, quantityKg: Number(quantityKg), basePriceINR: baseInr.toString(), harvestDate: Number(harvestDate), minPriceINR: (minPriceINR != null) ? BigInt(minPriceINR).toString() : undefined, expiryDate: Number(expiry)
     }))
-    const argsFor = [farmerAddress, cropType, BigInt(quantityKg), baseInr, BigInt(harvestDate), metaCID]
-    const argsSimple = [cropType, BigInt(quantityKg), baseInr, BigInt(harvestDate), metaCID]
+    const argsFor = [farmerAddress, cropType, BigInt(quantityKg), baseInr, BigInt(harvestDate), metaCID, expiry]
+    const argsSimple = [cropType, BigInt(quantityKg), baseInr, BigInt(harvestDate), metaCID, expiry]
     let hash
     let receipt
     let usedFallback = false
@@ -567,25 +570,79 @@ app.get('/api/batches', async (req, res) => {
       }
     }
 
-    // Filter by farmer if requested
+    // Filter by farmer (history) if requested
     const farmerFilter = req.query.farmer
     if (farmerFilter && /^0x[0-9a-fA-F]{40}$/.test(farmerFilter)) {
-      // We need to filter IDs where the farmer matches.
-      // Since we can't efficiently check every batch on-chain, we rely on BatchRegistered events.
-      // This is an optimization: only return IDs that were registered by this farmer.
-      const logs = await client.getLogs({
-        address: CONTRACT_ADDRESS,
-        abi: AGRI_TRUTH_CHAIN_ABI,
-        eventName: 'BatchRegistered',
-        fromBlock: 0n,
-        args: { farmer: farmerFilter }
-      })
       const farmerIds = new Set()
-      for (const log of logs) {
-        if (log.args?.batchId != null) farmerIds.add(log.args.batchId)
-      }
-      // Intersect with all IDs (in case getAllBatchIds returns more/less or for consistency)
+      // 1. Registered by farmer
+      const logsReg = await client.getLogs({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, eventName: 'BatchRegistered', fromBlock: 0n, args: { farmer: farmerFilter } })
+      for (const log of logsReg) { if (log.args?.batchId != null) farmerIds.add(log.args.batchId) }
+      // 2. Transferred to farmer
+      const logsTransfer = await client.getLogs({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, eventName: 'OwnershipTransferred', fromBlock: 0n, args: { to: farmerFilter } })
+      for (const log of logsTransfer) { if (log.args?.batchId != null) farmerIds.add(log.args.batchId) }
       ids = ids.filter(id => farmerIds.has(id))
+    }
+
+    // Filter by current owner if requested (strict ownership)
+    const currentOwnerFilter = req.query.currentOwner
+    if (currentOwnerFilter && /^0x[0-9a-fA-F]{40}$/.test(currentOwnerFilter)) {
+      // Optimization: Only check batches where the user was involved (Registered or Transferred To)
+      // Otherwise we'd have to check ownership of ALL batches on chain.
+      const candidateIds = new Set()
+      try {
+        const logsReg = await client.getLogs({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, eventName: 'BatchRegistered', fromBlock: 0n, args: { farmer: currentOwnerFilter } })
+        
+        for (const log of logsReg) { 
+            if (log.args?.batchId != null) {
+                candidateIds.add(log.args.batchId) 
+            } else {
+                // Fallback: manual decode if args is undefined
+                try {
+                    const decoded = decodeEventLog({ abi: AGRI_TRUTH_CHAIN_ABI, data: log.data, topics: log.topics })
+                    if (decoded.eventName === 'BatchRegistered' && decoded.args?.batchId != null) {
+                        candidateIds.add(decoded.args.batchId)
+                    }
+                } catch (e) { }
+            }
+        }
+        
+        const logsTransfer = await client.getLogs({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, eventName: 'OwnershipTransferred', fromBlock: 0n, args: { to: currentOwnerFilter } })
+        
+        for (const log of logsTransfer) { 
+            if (log.args?.batchId != null) {
+                candidateIds.add(log.args.batchId) 
+            } else {
+                // Fallback: manual decode if args is undefined
+                try {
+                    const decoded = decodeEventLog({ abi: AGRI_TRUTH_CHAIN_ABI, data: log.data, topics: log.topics })
+                    if (decoded.eventName === 'OwnershipTransferred' && decoded.args?.batchId != null) {
+                        candidateIds.add(decoded.args.batchId)
+                    }
+                } catch (e) { }
+            }
+        }
+      } catch (e) {
+        console.error('[server] Error fetching logs for filter:', e)
+      }
+      
+      // Now verify current ownership for these candidates
+      const candidates = Array.from(candidateIds)
+      
+      const confirmedIds = new Set()
+      // Parallel checks with retry
+      await Promise.all(candidates.map(async (id) => {
+        try {
+          const b = await retry(() => client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [id] }))
+          if (b && isSameAddress(b[1], currentOwnerFilter)) {
+            confirmedIds.add(id)
+          } else {
+          }
+        } catch (e) {
+          console.warn(`[server] Failed to verify ownership for batch ${id}:`, e.message)
+        }
+      }))
+      
+      ids = ids.filter(id => confirmedIds.has(id))
     }
 
     // Support pagination
@@ -636,7 +693,8 @@ app.get('/api/batches', async (req, res) => {
           verificationBy: b[20] || null,
           verificationAt: Number(b[21] || 0n),
           parentId: Number(b[22] || 0n),
-          isSplit: !!b[23]
+          isSplit: !!b[23],
+          expiryDate: Number(b[24] || 0n)
         }
         // Fallback: if minPrice is zero but base exists, use base as min
         if ((record.minPriceINR === '0' || record.minPriceINR === 0) && (record.basePriceINR && record.basePriceINR !== '0')) {
@@ -800,7 +858,8 @@ app.get('/api/batch/:id', async (req, res) => {
         verificationBy: b[20] || null,
         verificationAt: Number(b[21] || 0n),
         parentId: Number(b[22] || 0n),
-        isSplit: !!b[23]
+        isSplit: !!b[23],
+        expiryDate: Number(b[24] || 0n)
       }
       if ((batch.minPriceINR === '0' || batch.minPriceINR === 0) && (batch.basePriceINR && batch.basePriceINR !== '0')) {
         batch.minPriceINR = batch.basePriceINR.toString()
@@ -815,6 +874,7 @@ app.get('/api/batch/:id', async (req, res) => {
           if (m?.basePriceINR && (batch.basePriceINR === '0' || !batch.basePriceINR)) batch.basePriceINR = String(m.basePriceINR)
           if (m?.harvestDate && (!batch.harvestDate || batch.harvestDate === 0)) batch.harvestDate = Number(m.harvestDate)
           if (m?.minPriceINR && (batch.minPriceINR === '0' || !batch.minPriceINR)) batch.minPriceINR = String(m.minPriceINR)
+          if (m?.expiryDate && (!batch.expiryDate || batch.expiryDate === 0)) batch.expiryDate = Number(m.expiryDate)
         }
       } catch { }
     } else {
@@ -893,6 +953,17 @@ app.post('/api/verification-status', (req, res) => {
   })()
 })
 
+// Helper for robust RPC calls
+async function retry(fn, retries = 1, delay = 500) {
+  try {
+    return await fn();
+  } catch (e) {
+    if (retries <= 0) throw e;
+    await new Promise(r => setTimeout(r, delay));
+    return retry(fn, retries - 1, delay * 1.5);
+  }
+}
+
 // Diagnostics: show chain, rpc, and contract bytecode presence
 app.get('/api/chain-info', async (req, res) => {
   try {
@@ -920,8 +991,16 @@ app.get('/api/chain-info', async (req, res) => {
   }
 })
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server listening on port ${PORT}`);
+});
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`[server] Port ${PORT} is already in use. Is the server already running?`);
+  } else {
+    console.error('[server] Server error:', e);
+  }
+  process.exit(1);
 });
 
 // Diagnostics: raw tuple read and event fallback for a batch id
@@ -1061,3 +1140,89 @@ app.post('/api/set-price-by-retailer', async (req, res) => {
     res.status(500).json({ error: 'set_price_failed', message: e?.message || String(e) })
   }
 })
+
+// Worker / Cron Endpoint for Expiry Checks
+const checkExpiryHandler = async (req, res) => {
+  try {
+    console.log('[cron] Checking for expiring batches...')
+    if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(500).json({ error: 'contract_not_ready' })
+    
+    // 1. Get all batch IDs
+    let ids = []
+    try {
+      ids = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'getAllBatchIds' })
+    } catch (e) {
+       const logs = await client.getLogs({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, eventName: 'BatchRegistered', fromBlock: 0n })
+       ids = logs.map(l => l.args.batchId).filter(id => id != null)
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    const ONE_DAY = 24 * 60 * 60
+    const alertsSent = []
+
+    // 2. Check each batch
+    for (const id of ids) {
+      try {
+        const b = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [id] })
+        // b[24] is expiryDate, b[1] is currentOwner, b[2] is farmer
+        const expiryDate = Number(b[24] || 0n)
+        const currentOwner = b[1]
+        const farmer = b[2]
+
+        if (expiryDate > 0) {
+            const timeLeft = expiryDate - now
+            // Check if expiring within the next 24 hours
+            if (timeLeft > 0 && timeLeft <= ONE_DAY) {
+                // Check ownership: only notify if still owned by farmer
+                if (isSameAddress(currentOwner, farmer)) {
+                    await sendWhatsAppMessage(farmer, id, expiryDate)
+                    alertsSent.push({ batchId: id.toString(), farmer, expiryDate })
+                }
+            }
+        }
+      } catch (e) {
+        console.warn(`[cron] Failed to check batch ${id}`, e)
+      }
+    }
+    
+    res.json({ ok: true, alertsSent })
+  } catch (e) {
+    console.error('[cron] failed', e)
+    res.status(500).json({ error: 'cron_failed' })
+  }
+}
+
+app.post('/api/cron/check-expiry', checkExpiryHandler)
+app.post('/api/cron/check-expire', checkExpiryHandler)
+
+async function sendWhatsAppMessage(toAddress, batchId, expiryDate) {
+    const dateStr = new Date(expiryDate * 1000).toLocaleDateString()
+    // Use the production webhook URL as requested
+    const webhookUrl = N8N_WEBHOOK_SECRET
+    
+    console.log(`[WHATSAPP] Sending webhook request for Batch #${batchId} to ${toAddress}`)
+    
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                toAddress,
+                batchId: batchId.toString(),
+                expiryDate,
+                expiryDateString: dateStr,
+                message: `Farmer, your batch #${batchId} is going to expire on ${dateStr}. Prepare and apply for govt scheme if possible.`
+            })
+        })
+        
+        if (!response.ok) {
+            console.error(`[WHATSAPP] Webhook failed with status ${response.status}`)
+        } else {
+            console.log(`[WHATSAPP] Webhook sent successfully`)
+        }
+    } catch (error) {
+        console.error(`[WHATSAPP] Error sending webhook:`, error)
+    }
+}

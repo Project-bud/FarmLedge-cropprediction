@@ -295,18 +295,27 @@ const Distributors = () => {
                                     <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                                   )}
                                 </div>
-                                <div className="text-sm text-slate-500 mt-1">
-                                  {b.quantityKg} kg {t('distributors.marketplace.available')} • ₹{price}/kg
+                                <div className="text-sm text-slate-500 mt-1 space-y-1">
+                                  <div>{b.quantityKg} kg {t('distributors.marketplace.available')} • ₹{price}/kg</div>
+                                  <div className="text-xs flex gap-3">
+                                    <span>Harvest: {b.harvestDate ? new Date(Number(b.harvestDate) * 1000).toLocaleDateString() : '-'}</span>
+                                    <span className="text-red-600">Expires: {b.expiryDate ? new Date(Number(b.expiryDate) * 1000).toLocaleDateString() : '-'}</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right flex flex-col gap-2">
                               <Button 
                                 size="sm" 
                                 variant={isSelected ? "default" : "ghost"}
                                 className={isSelected ? "bg-blue-600 hover:bg-blue-700" : ""}
                               >
                                 {isSelected ? t('distributors.marketplace.selected') : t('distributors.marketplace.select')}
+                              </Button>
+                              <Button size="sm" variant="outline" asChild>
+                                <a href={`/batch?id=${b.id}`} target="_blank" rel="noreferrer">
+                                  View
+                                </a>
                               </Button>
                             </div>
                           </div>

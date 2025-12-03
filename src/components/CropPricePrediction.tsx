@@ -167,7 +167,7 @@ const CropPricePrediction = () => {
                             
                             <div className="pt-4 border-t border-emerald-100">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-slate-600">{t('prediction.currentAverage')}</span>
+                                    <span className="text-slate-600">{t('farmers.price_prediction')}</span>
                                     <span className="font-mono font-medium">₹{prediction.recentAveragePrice} / kg</span>
                                 </div>
                             </div>

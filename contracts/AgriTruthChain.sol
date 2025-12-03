@@ -30,6 +30,7 @@ contract AgriTruthChain {
         // Splitting fields
         uint256 parentId; // 0 if root
         bool isSplit;
+        uint64 expiryDate;
     }
 
     uint256 public nextBatchId = 1;
@@ -38,7 +39,7 @@ contract AgriTruthChain {
     address public owner;
     mapping(address => bool) public verifiers;
 
-    event BatchRegistered(uint256 indexed batchId, address indexed farmer, string cropType, uint256 quantityKg, uint256 basePriceINR, uint64 harvestDate, string metadataCID);
+    event BatchRegistered(uint256 indexed batchId, address indexed farmer, string cropType, uint256 quantityKg, uint256 basePriceINR, uint64 harvestDate, string metadataCID, uint64 expiryDate);
     event OwnershipTransferred(uint256 indexed batchId, address indexed from, address indexed to);
     event VerifierSet(address indexed verifier, bool allowed);
     event PricesUpdatedINR(uint256 indexed batchId, uint256 minPriceINR, uint256 priceByDistributorINR, uint256 priceByRetailerINR);
@@ -64,7 +65,8 @@ contract AgriTruthChain {
         uint256 quantityKg,
         uint256 basePriceINR,
         uint64 harvestDate,
-        string calldata metadataCID
+        string calldata metadataCID,
+        uint64 expiryDate
     ) internal returns (uint256 batchId) {
         require(farmer != address(0), "bad-farmer");
         batchId = nextBatchId++;
@@ -93,8 +95,9 @@ contract AgriTruthChain {
         b.verificationAt = 0;
         b.parentId = 0;
         b.isSplit = false;
+        b.expiryDate = expiryDate;
         batchIds.push(batchId);
-        emit BatchRegistered(batchId, farmer, cropType, quantityKg, basePriceINR, harvestDate, metadataCID);
+        emit BatchRegistered(batchId, farmer, cropType, quantityKg, basePriceINR, harvestDate, metadataCID, expiryDate);
     }
 
     function registerBatchFor(
@@ -103,9 +106,10 @@ contract AgriTruthChain {
         uint256 quantityKg,
         uint256 basePriceINR,
         uint64 harvestDate,
-        string calldata metadataCID
+        string calldata metadataCID,
+        uint64 expiryDate
     ) external returns (uint256 batchId) {
-        return _registerBatch(farmer, cropType, quantityKg, basePriceINR, harvestDate, metadataCID);
+        return _registerBatch(farmer, cropType, quantityKg, basePriceINR, harvestDate, metadataCID, expiryDate);
     }
 
     function registerBatch(
@@ -113,9 +117,10 @@ contract AgriTruthChain {
         uint256 quantityKg,
         uint256 basePriceINR,
         uint64 harvestDate,
-        string calldata metadataCID
+        string calldata metadataCID,
+        uint64 expiryDate
     ) external returns (uint256 batchId) {
-        return _registerBatch(msg.sender, cropType, quantityKg, basePriceINR, harvestDate, metadataCID);
+        return _registerBatch(msg.sender, cropType, quantityKg, basePriceINR, harvestDate, metadataCID, expiryDate);
     }
 
     function transferOwnership(uint256 batchId, address to) external {
@@ -258,6 +263,7 @@ contract AgriTruthChain {
         child.verificationAt = parent.verificationAt;
         child.parentId = parentBatchId;
         child.isSplit = true;
+        child.expiryDate = parent.expiryDate;
         
         batchIds.push(newBatchId);
         emit BatchSplit(parentBatchId, newBatchId, splitQuantity);
