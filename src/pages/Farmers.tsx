@@ -12,39 +12,40 @@ import { Badge } from "@/components/ui/badge";
 import { getAvailableCrops, getSeasonalityFactor, fetchRecentPrice } from "@/lib/pricePrediction";
 import TestingAddresses from "@/components/TestingAddresses";
 import { DEFAULT_ADDRESSES, isHexAddress } from "@/lib/addresses";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { uploadJSONToIPFS } from "@/lib/ipfs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Sprout, 
-  Tractor, 
-  Scale, 
-  IndianRupee, 
-  Calendar as CalendarIcon, 
+import {
+  Sprout,
+  Tractor,
+  Scale,
+  IndianRupee,
+  Calendar as CalendarIcon,
   Plus,
   Search,
   ArrowUpRight
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  ChevronLeft, 
-  ChevronRight 
+import {
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 const Farmers = () => {
-  const [form, setForm] = useState<{ cropType: string; quantityKg: string; basePricePerKg: string; harvestDate: string; farmerAddress: string; expiryDate: string }>({ cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", farmerAddress: DEFAULT_ADDRESSES.FARMER as string, expiryDate: "" });
+  const [form, setForm] = useState<{ cropType: string; quantityKg: string; basePricePerKg: string; harvestDate: string; farmerAddress: string; expiryDate: string; description: string; location: string }>({ cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", farmerAddress: DEFAULT_ADDRESSES.FARMER as string, expiryDate: "", description: "", location: "" });
   const [page, setPage] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const nav = useNavigate();
@@ -78,12 +79,12 @@ const Farmers = () => {
 
       // Check if entered crop matches one of our known crops (case insensitive)
       const matchedCrop = availableCrops.find(c => c.toLowerCase() === form.cropType.toLowerCase());
-      
+
       if (matchedCrop) {
         try {
           const factor = getSeasonalityFactor(matchedCrop);
           const recentPriceQuintal = await fetchRecentPrice(matchedCrop);
-          
+
           if (recentPriceQuintal) {
             const pricePerKg = (recentPriceQuintal / 100) * factor;
             setSuggestedPrice(pricePerKg.toFixed(2));
@@ -108,48 +109,69 @@ const Farmers = () => {
       setSubmitting(true)
       const quantityKg = Number(form.quantityKg || 0)
       const basePricePerKg = Number(form.basePricePerKg || 0)
-      
-      if (!form.cropType.trim()) { 
-        toast.error(t('farmers.errors.enterCrop')); 
-        return 
+
+      if (!form.cropType.trim()) {
+        toast.error(t('farmers.errors.enterCrop'));
+        return
       }
-      if (!quantityKg || Number.isNaN(quantityKg)) { 
-        toast.error(t('farmers.errors.enterQty')); 
-        return 
+      if (!quantityKg || Number.isNaN(quantityKg)) {
+        toast.error(t('farmers.errors.enterQty'));
+        return
       }
-      if (!basePricePerKg || Number.isNaN(basePricePerKg)) { 
-        toast.error(t('farmers.errors.enterPrice')); 
-        return 
+      if (!basePricePerKg || Number.isNaN(basePricePerKg)) {
+        toast.error(t('farmers.errors.enterPrice'));
+        return
       }
-      if (!form.harvestDate) { 
-        toast.error(t('farmers.errors.chooseHarvest')); 
-        return 
+      if (!form.harvestDate) {
+        toast.error(t('farmers.errors.chooseHarvest'));
+        return
       }
-      if (!form.expiryDate) { 
-        toast.error(t('farmers.errors.chooseExpiry')); 
-        return 
+      if (!form.expiryDate) {
+        toast.error(t('farmers.errors.chooseExpiry'));
+        return
       }
-      
+
       const farmerAddress = form.farmerAddress?.trim() || DEFAULT_ADDRESSES.FARMER
-      if (!isHexAddress(farmerAddress)) { 
-        toast.error(t('farmers.errors.enterEOA')); 
-        return 
+      if (!isHexAddress(farmerAddress)) {
+        toast.error(t('farmers.errors.enterEOA'));
+        return
       }
 
       const basePriceINR = Math.round(basePricePerKg) // total ₹ for batch
       const minPriceINR = basePriceINR // simple default; can add UI later
       const harvestDateSec = Math.floor(new Date(form.harvestDate).getTime() / 1000)
       const expiryDateSec = Math.floor(new Date(form.expiryDate).getTime() / 1000)
-      
+
+      // IPFS Upload Logic
+      let metadataCID = "";
+      try {
+        toast.info("Uploading metadata to IPFS...");
+        const metadata = {
+          cropType: form.cropType,
+          quantityKg,
+          basePricePerKg,
+          harvestDate: form.harvestDate,
+          expiryDate: form.expiryDate,
+          description: form.description,
+          location: form.location,
+          farmerAddress
+        };
+        metadataCID = await uploadJSONToIPFS(metadata);
+        console.log("IPFS CID:", metadataCID);
+      } catch (ipfsError) {
+        console.error("IPFS Upload failed:", ipfsError);
+        toast.error("Failed to upload metadata to IPFS. Proceeding without it.");
+      }
+
       const res = await fetch('/api/register-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cropType: form.cropType, quantityKg, basePriceINR, minPriceINR, harvestDate: harvestDateSec, metadataCID: '' , farmerAddress, expiryDate: expiryDateSec })
+        body: JSON.stringify({ cropType: form.cropType, quantityKg, basePriceINR, minPriceINR, harvestDate: harvestDateSec, metadataCID, farmerAddress, expiryDate: expiryDateSec })
       })
-      
+
       const data = await res.json()
       if (!res.ok) throw new Error(`${data?.error || 'failed'}${data?.message ? `: ${data.message}` : ''}`)
-      
+
       if (!data.batchId || !/^[0-9]+$/.test(data.batchId)) {
         toast.error(t('farmers.errors.registeredNoId'))
       } else {
@@ -158,12 +180,12 @@ const Farmers = () => {
         // Navigate to details for immediate feedback
         nav(`/batch?id=${encodeURIComponent(data.batchId)}`)
       }
-      setForm({ ...form, cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", expiryDate: "" });
-    } catch (e: any) { 
-      console.error(e); 
-      toast.error(`${t('farmers.errors.registerFailed')}${e?.message ? `: ${e.message}` : ''}`); 
-    } finally { 
-      setSubmitting(false) 
+      setForm({ ...form, cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", expiryDate: "", description: "", location: "" });
+    } catch (e: any) {
+      console.error(e);
+      toast.error(`${t('farmers.errors.registerFailed')}${e?.message ? `: ${e.message}` : ''}`);
+    } finally {
+      setSubmitting(false)
     }
   };
 
@@ -175,7 +197,7 @@ const Farmers = () => {
   return (
     <div className="min-h-screen bg-slate-50/50 font-sans">
       <Navigation />
-      
+
       <main className="container mx-auto px-4 py-24 sm:py-28 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -183,7 +205,7 @@ const Farmers = () => {
             <p className="text-slate-500 mt-1">Manage your harvests and register new batches on the blockchain.</p>
           </div>
           <div className="flex gap-2">
-             {/* Placeholder for future actions */}
+            {/* Placeholder for future actions */}
           </div>
         </div>
 
@@ -254,18 +276,18 @@ const Farmers = () => {
                     </datalist>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>{t('farmers.form.quantityKg')}</Label>
                     <div className="relative">
                       <Scale className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input 
-                        className="pl-9" 
+                      <Input
+                        className="pl-9"
                         type="number"
                         placeholder="0"
-                        value={form.quantityKg} 
-                        onChange={(e) => setForm({ ...form, quantityKg: e.target.value })} 
+                        value={form.quantityKg}
+                        onChange={(e) => setForm({ ...form, quantityKg: e.target.value })}
                       />
                     </div>
                   </div>
@@ -273,12 +295,12 @@ const Farmers = () => {
                     <Label>{t('farmers.form.pricePerKg')}</Label>
                     <div className="relative">
                       <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input 
-                        className="pl-9" 
+                      <Input
+                        className="pl-9"
                         type="number"
                         placeholder="0"
-                        value={form.basePricePerKg} 
-                        onChange={(e) => setForm({ ...form, basePricePerKg: e.target.value })} 
+                        value={form.basePricePerKg}
+                        onChange={(e) => setForm({ ...form, basePricePerKg: e.target.value })}
                       />
                     </div>
                     {suggestedPrice && (
@@ -294,11 +316,11 @@ const Farmers = () => {
                     <Label>{t('farmers.form.harvestDate')}</Label>
                     <div className="relative">
                       <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input 
-                        className="pl-9" 
-                        type="date" 
-                        value={form.harvestDate} 
-                        onChange={(e) => setForm({ ...form, harvestDate: e.target.value })} 
+                      <Input
+                        className="pl-9"
+                        type="date"
+                        value={form.harvestDate}
+                        onChange={(e) => setForm({ ...form, harvestDate: e.target.value })}
                       />
                     </div>
                   </div>
@@ -306,33 +328,52 @@ const Farmers = () => {
                     <Label>{t('farmers.form.expiryDate')}</Label>
                     <div className="relative">
                       <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input 
-                        className="pl-9" 
-                        type="date" 
-                        value={form.expiryDate} 
-                        onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} 
+                      <Input
+                        className="pl-9"
+                        type="date"
+                        value={form.expiryDate}
+                        onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
                       />
                     </div>
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Description (Off-Chain)</Label>
+                    <Input
+                      placeholder="Crop quality..."
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Location (Off-Chain)</Label>
+                    <Input
+                      placeholder="Farm Location..."
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label>{t('farmers.form.farmerAddress')}</Label>
-                  <Input 
-                    className="font-mono text-xs" 
-                    placeholder="0x..." 
-                    value={form.farmerAddress} 
+                  <Input
+                    className="font-mono text-xs"
+                    placeholder="0x..."
+                    value={form.farmerAddress}
                     onChange={(e) => {
                       setForm({ ...form, farmerAddress: e.target.value });
                       setPage(1); // Reset to first page on address change
-                    }} 
+                    }}
                   />
                   <p className="text-[10px] text-slate-400">{t('farmers.sections.ownerAddress')}</p>
                 </div>
 
-                <Button 
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" 
-                  onClick={register} 
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={register}
                   disabled={submitting}
                 >
                   {submitting ? (
@@ -413,24 +454,24 @@ const Farmers = () => {
                         </TableBody>
                       </Table>
                     </div>
-                    
+
                     {/* Pagination Controls */}
                     <div className="flex items-center justify-between px-2">
                       <p className="text-sm text-slate-500">
                         Page {page} of {totalPages || 1}
                       </p>
                       <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setPage(p => Math.max(1, p - 1))}
                           disabled={page === 1}
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                           disabled={page >= totalPages}
                         >
