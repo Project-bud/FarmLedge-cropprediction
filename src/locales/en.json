@@ -6,6 +6,7 @@
     "retailers": "Retailers",
     "consumers": "Consumers",
     "admin": "Admin",
+    "aboutUs": "About Us",
     "howItWorks": "How It Works",
     "blockchainGuide": "Blockchain Guide",
     "fairTrade": "Fair Trade",
@@ -96,13 +97,20 @@
     "card2Desc": "Simply scan any QR code to trace the complete journey of your food from farm to table."
   },
   "login": {
+    "title": "Welcome Back!",
+    "description": "Choose your role and sign in with email + password (test-only, no OTP).",
+    "emailPassword": "Email + Password",
+    "email": "Email",
+    "password": "Password",
+    "continue": "Continue",
+    "testNote": "Test-only: accepts any email/password. You'll need to logout to switch roles.",
     "hero": {
-      "badge": "Secure Login",
+      "badge": "Trusted by 10,000+ users across the supply chain",
       "welcome": "Welcome to",
-      "tagline": "Join the transparent agricultural revolution. Connect, trade, and verify with confidence."
+      "tagline": "Enterprise-grade blockchain platform for transparent agriculture supply chain management"
     },
     "chooseRole": "Choose your role",
-    "selectAccount": "Select the account type that fits you best",
+    "selectAccount": "Select your account type to access your personalized dashboard",
     "roleDescriptions": {
       "farmer": "Grow and manage your crops with blockchain transparency",
       "distributor": "Transport and track produce across the supply chain",
@@ -110,24 +118,60 @@
       "consumer": "Buy authentic products and track their journey",
       "verifier": "Verify and validate product authenticity"
     },
+    "features": {
+      "blockchain": "Blockchain Verified",
+      "blockchainDesc": "100% authentic tracking",
+      "realtime": "Real-time Updates",
+      "realtimeDesc": "Live supply chain data",
+      "secure": "Secure Platform",
+      "secureDesc": "Enterprise-grade security",
+      "support": "24/7 Support",
+      "supportDesc": "Always here to help"
+    },
     "form": {
       "signInAs": "Sign in as",
       "accessDashboard": "Access your dashboard",
       "aadhaar": "Aadhaar Number",
       "aadhaarPlaceholder": "Enter 12-digit Aadhaar",
-      "aadhaarExample": "For testing, enter any 12 digits",
-      "emailAddress": "Email Address",
-      "emailPlaceholder": "name@company.com",
+      "aadhaarExample": "Example for testing: 123456789012",
+      "emailAddress": "Email address",
+      "emailPlaceholder": "you@company.com",
+      "emailExample": "Example for testing: demo@farmledge.com",
       "enterOtp": "Enter OTP",
-      "otpPlaceholder": "• • • • • •",
-      "otpDisplay": "Test OTP:",
+      "otpPlaceholder": "Enter 6-digit OTP",
+      "otpDisplay": "OTP:",
+      "otpUse": "Use this OTP for verification",
+      "backTo": "Back to",
+      "backToAadhaar": "Aadhaar",
+      "backToEmail": "Email",
       "getOtp": "Get OTP",
+      "verifying": "Verifying...",
       "verifyContinue": "Verify & Continue",
-      "testMode": "Test Mode",
-      "demoMode": "Demo Mode:",
-      "demoFarmer": "Enter any 12 digits.",
-      "demoOther": "Enter any email.",
-      "noSending": "No SMS/Email sent."
+      "testMode": "Test mode enabled",
+      "demoMode": "Demo mode:",
+      "demoFarmer": "Enter any 12-digit Aadhaar to generate example OTP",
+      "demoOther": "Enter any email to generate example OTP",
+      "noSending": "No actual SMS or email will be sent."
+    },
+    "trust": {
+      "encryption": "256-bit encryption",
+      "uptime": "99.9% uptime"
+    },
+    "stats": {
+      "users": "Active Users",
+      "products": "Products Tracked",
+      "uptime": "Uptime SLA",
+      "support": "Support Available"
+    },
+    "validation": {
+      "invalidAadhaar": "Invalid Aadhaar",
+      "invalidAadhaarDesc": "Please enter a valid 12-digit Aadhaar number",
+      "invalidEmail": "Invalid Email",
+      "invalidEmailDesc": "Please enter a valid email address",
+      "verificationSuccess": "✓ Verification Successful",
+      "loggingIn": "Logging you in...",
+      "invalidOtp": "Invalid OTP",
+      "invalidOtpDesc": "The OTP you entered is incorrect. Please try again."
     }
   },
   "verifier": {
@@ -441,20 +485,16 @@
     "Cauliflower": "Cauliflower",
     "Chili Red": "Chili Red",
     "Coconut": "Coconut",
-    "Cow": "Cow",
     "Dry Chillies": "Dry Chillies",
-    "Fish": "Fish",
     "Garlic": "Garlic",
     "Green Chilli": "Green Chilli",
     "Ground Nut Seed": "Ground Nut Seed",
     "Groundnut": "Groundnut",
-    "Hen": "Hen",
     "Jack Fruit": "Jack Fruit",
     "Jute": "Jute",
     "Mango": "Mango",
     "Mustard": "Mustard",
     "Onion": "Onion",
-    "Ox": "Ox",
     "Papaya": "Papaya",
     "Peas cod": "Peas cod",
     "Potato": "Potato",

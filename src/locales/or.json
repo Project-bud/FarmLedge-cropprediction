@@ -6,6 +6,7 @@
     "retailers": "ଖୁଦ୍ରା ବିକ୍ରେତା",
     "consumers": "ଗ୍ରାହକ",
     "admin": "ପ୍ରଶାସକ",
+    "aboutUs": "ଆମ ବିଷୟରେ",
     "howItWorks": "ଏହା କିପରି କାମ କରେ",
     "blockchainGuide": "ବ୍ଲକ୍ଚେନ୍ ଗାଇଡ୍",
     "fairTrade": "ନ୍ୟାୟ ବ୍ୟାପାର",
@@ -99,9 +100,77 @@
     "email": "ଇମେଲ୍",
     "password": "ପାସ୍ୱାର୍ଡ୍",
     "continue": "ଜାରି ରଖନ୍ତୁ",
-    "testNote": "କେବଳ ପରୀକ୍ଷଣ: ଯେକୌଣସି ଇମେଲ୍/ପାସ୍ୱାର୍ଡ୍ ଗ୍ରହଣ କରେ। ଭୂମିକାଗୁଡ଼ିକୁ ବଦଳାଇବାକୁ ଆପଣଙ୍କୁ ଲଗ୍ ଆଉଟ୍ କରିବାକୁ ପଡ଼ିବ।"
-  }
-  ,
+    "testNote": "କେବଳ ପରୀକ୍ଷଣ: ଯେକୌଣସି ଇମେଲ୍/ପାସ୍ୱାର୍ଡ୍ ଗ୍ରହଣ କରେ। ଭୂମିକାଗୁଡ଼ିକୁ ବଦଳାଇବାକୁ ଆପଣଙ୍କୁ ଲଗ୍ ଆଉଟ୍ କରିବାକୁ ପଡ଼ିବ।",
+    "hero": {
+      "badge": "ସପ୍ଲାଇ ଚେନ୍‌ରେ 10,000+ ଉପଭୋକ୍ତାଙ୍କ ଦ୍ୱାରା ବିଶ୍ୱସ୍ତ",
+      "welcome": "ସ୍ୱାଗତ",
+      "tagline": "ସ୍ୱଚ୍ଛ କୃଷି ସପ୍ଲାଇ ଚେନ୍ ପରିଚାଳନା ପାଇଁ ଏଣ୍ଟରପ୍ରାଇଜ୍-ଗ୍ରେଡ୍ ବ୍ଲକଚେନ୍ ପ୍ଲାଟଫର୍ମ"
+    },
+    "chooseRole": "ଆପଣଙ୍କ ଭୂମିକା ବାଛନ୍ତୁ",
+    "selectAccount": "ଆପଣଙ୍କ ବ୍ୟକ୍ତିଗତ ଡ୍ୟାସବୋର୍ଡ ଆକ୍ସେସ୍ କରିବାକୁ ଆପଣଙ୍କ ଖାତା ପ୍ରକାର ବାଛନ୍ତୁ",
+    "roleDescriptions": {
+      "farmer": "ବ୍ଲକଚେନ୍ ସ୍ୱଚ୍ଛତା ସହିତ ଆପଣଙ୍କ ଫସଲ ବଢ଼ାନ୍ତୁ ଏବଂ ପରିଚାଳନା କରନ୍ତୁ",
+      "distributor": "ସପ୍ଲାଇ ଚେନ୍‌ରେ ଉତ୍ପାଦନ ପରିବହନ ଏବଂ ଟ୍ରାକ୍ କରନ୍ତୁ",
+      "retailer": "ଆତ୍ମବିଶ୍ୱାସରେ ଗ୍ରାହକଙ୍କୁ ସତ୍ୟାପିତ ଉତ୍ପାଦ ବିକ୍ରୟ କରନ୍ତୁ",
+      "consumer": "ପ୍ରାମାଣିକ ଉତ୍ପାଦ କିଣନ୍ତୁ ଏବଂ ସେମାନଙ୍କ ଯାତ୍ରା ଟ୍ରାକ୍ କରନ୍ତୁ",
+      "verifier": "ଉତ୍ପାଦ ପ୍ରାମାଣିକତା ଯାଞ୍ଚ ଏବଂ ବୈଧ କରନ୍ତୁ"
+    },
+    "features": {
+      "blockchain": "ବ୍ଲକଚେନ୍ ସତ୍ୟାପିତ",
+      "blockchainDesc": "100% ପ୍ରାମାଣିକ ଟ୍ରାକିଂ",
+      "realtime": "ରିଅଲ-ଟାଇମ୍ ଅପଡେଟ୍",
+      "realtimeDesc": "ଲାଇଭ୍ ସପ୍ଲାଇ ଚେନ୍ ଡାଟା",
+      "secure": "ସୁରକ୍ଷିତ ପ୍ଲାଟଫର୍ମ",
+      "secureDesc": "ଏଣ୍ଟରପ୍ରାଇଜ୍-ଗ୍ରେଡ୍ ସୁରକ୍ଷା",
+      "support": "24/7 ସମର୍ଥନ",
+      "supportDesc": "ସର୍ବଦା ସାହାଯ୍ୟ ପାଇଁ ଏଠାରେ"
+    },
+    "form": {
+      "signInAs": "ସାଇନ୍ ଇନ୍ କରନ୍ତୁ",
+      "accessDashboard": "ଆପଣଙ୍କ ଡ୍ୟାସବୋର୍ଡ ଆକ୍ସେସ୍ କରନ୍ତୁ",
+      "aadhaar": "ଆଧାର ନମ୍ବର",
+      "aadhaarPlaceholder": "12-ଅଙ୍କ ଆଧାର ପ୍ରବେଶ କରନ୍ତୁ",
+      "aadhaarExample": "ପରୀକ୍ଷଣ ପାଇଁ ଉଦାହରଣ: 123456789012",
+      "emailAddress": "ଇମେଲ୍ ଠିକଣା",
+      "emailPlaceholder": "you@company.com",
+      "emailExample": "ପରୀକ୍ଷଣ ପାଇଁ ଉଦାହରଣ: demo@farmledge.com",
+      "enterOtp": "OTP ପ୍ରବେଶ କରନ୍ତୁ",
+      "otpPlaceholder": "6-ଅଙ୍କ OTP ପ୍ରବେଶ କରନ୍ତୁ",
+      "otpDisplay": "OTP:",
+      "otpUse": "ସତ୍ୟାପନ ପାଇଁ ଏହି OTP ବ୍ୟବହାର କରନ୍ତୁ",
+      "backTo": "ଫେରିଯାଆନ୍ତୁ",
+      "backToAadhaar": "ଆଧାର",
+      "backToEmail": "ଇମେଲ୍",
+      "getOtp": "OTP ପ୍ରାପ୍ତ କରନ୍ତୁ",
+      "verifying": "ସତ୍ୟାପନ କରୁଛି...",
+      "verifyContinue": "ସତ୍ୟାପନ କରନ୍ତୁ ଏବଂ ଜାରି ରଖନ୍ତୁ",
+      "testMode": "ପରୀକ୍ଷଣ ମୋଡ୍ ସକ୍ଷମ",
+      "demoMode": "ଡେମୋ ମୋଡ୍:",
+      "demoFarmer": "ଉଦାହରଣ OTP ସୃଷ୍ଟି କରିବାକୁ 12-ଅଙ୍କ ଆଧାର ପ୍ରବେଶ କରନ୍ତୁ",
+      "demoOther": "ଉଦାହରଣ OTP ସୃଷ୍ଟି କରିବାକୁ ଯେକୌଣସି ଇମେଲ୍ ପ୍ରବେଶ କରନ୍ତୁ",
+      "noSending": "କୌଣସି ପ୍ରକୃତ SMS କିମ୍ବା ଇମେଲ୍ ପଠାଯିବ ନାହିଁ।"
+    },
+    "trust": {
+      "encryption": "256-ବିଟ୍ ଏନକ୍ରିପ୍ସନ୍",
+      "uptime": "99.9% ଅପଟାଇମ୍"
+    },
+    "stats": {
+      "users": "ସକ୍ରିୟ ଉପଭୋକ୍ତା",
+      "products": "ଟ୍ରାକ୍ କରାଯାଇଥିବା ଉତ୍ପାଦ",
+      "uptime": "ଅପଟାଇମ୍ SLA",
+      "support": "ସମର୍ଥନ ଉପଲବ୍ଧ"
+    },
+    "validation": {
+      "invalidAadhaar": "ଅବୈଧ ଆଧାର",
+      "invalidAadhaarDesc": "ଦୟାକରି ଏକ ବୈଧ 12-ଅଙ୍କ ଆଧାର ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ",
+      "invalidEmail": "ଅବୈଧ ଇମେଲ୍",
+      "invalidEmailDesc": "ଦୟାକରି ଏକ ବୈଧ ଇମେଲ୍ ଠିକଣା ପ୍ରବେଶ କରନ୍ତୁ",
+      "verificationSuccess": "✓ ସତ୍ୟାପନ ସଫଳ",
+      "loggingIn": "ଲଗ୍ ଇନ୍ ହେଉଛି...",
+      "invalidOtp": "ଅବୈଧ OTP",
+      "invalidOtpDesc": "ଆପଣ ପ୍ରବେଶ କରିଥିବା OTP ଭୁଲ୍ ଅଛି। ଦୟାକରି ପୁନର୍ବାର ଚେଷ୍ଟା କରନ୍ତୁ।"
+    }
+  },
   "verifier": {
     "title": "ସତ୍ୟାପକ ଡ୍ୟାଶ୍‌ବୋର୍ଡ୍",
     "reviewTitle": "ବ୍ୟାଚ୍ ସମୀକ୍ଷା କରନ୍ତୁ ଏବଂ ସତ୍ୟାପିତ କରନ୍ତୁ",
@@ -133,8 +202,7 @@
     "promptSecret": "ଆପଣଙ୍କ ସତ୍ୟାପକ କୀ ଲେଖନ୍ତୁ (ପରୀକ୍ଷା: କୌଣସି ଇନପୁଟ୍ ସ୍ୱୀକାର୍ଯ୍ୟ)",
     "confirmTitle": "ସତ୍ୟାପନ ନିଶ୍ଚିତକରଣ",
     "secretLabel": "ସତ୍ୟାପକ କୀ"
-  }
-  ,
+  },
   "farmers": {
     "title": "କୃଷକ ଡ୍ୟାଶ୍‌ବୋର୍ଡ୍",
     "registerHarvest": "ଅମଳ ପଞ୍ଜିକରଣ କରନ୍ତୁ",
@@ -147,7 +215,10 @@
       "expiryDate": "ବ୍ୟବହାରର ଶେଷ ତାରିଖ",
       "farmerAddress": "କୃଷକ ଠିକଣା (EOA)"
     },
-    "actions": { "register": "ଉତ୍ପାଦ ପଞ୍ଜିକରଣ", "registering": "ପଞ୍ଜିକରଣ ହେଉଛି…" },
+    "actions": {
+      "register": "ଉତ୍ପାଦ ପଞ୍ଜିକରଣ",
+      "registering": "ପଞ୍ଜିକରଣ ହେଉଛି…"
+    },
     "sections": {
       "myBatches": "ମୋର ବ୍ୟାଚ୍",
       "recentBatches": "ନେଟୱାର୍କରେ ପଞ୍ଜିକୃତ ସାମ୍ପ୍ରତିକ ବ୍ୟାଚ୍।",
@@ -205,7 +276,10 @@
     "browse": "ଉପଲବ୍ଧ ଉତ୍ପାଦଗୁଡ଼ିକୁ ଦେଖନ୍ତୁ",
     "selectBatch": "ବ୍ୟାଚ୍ ବାଛନ୍ତୁ",
     "setRetailerPrice": "ଖୁଦ୍ରା ମୂଲ୍ୟ ସେଟ୍ କରନ୍ତୁ (₹ ମୋଟ)",
-    "buttons": { "pay": "କୃଷକଙ୍କୁ ପେମେଣ୍ଟ (Stripe)", "refresh": "ରିଫ୍ରେସ୍" },
+    "buttons": {
+      "pay": "କୃଷକଙ୍କୁ ପେମେଣ୍ଟ (Stripe)",
+      "refresh": "ରିଫ୍ରେସ୍"
+    },
     "starting": "ଆରମ୍ଭ ହେଉଛି…",
     "messages": {
       "login": "ଦୟାକରି ଆଗକୁ ବଢ଼ିବାକୁ ଲଗ୍ଇନ୍ କରନ୍ତୁ",
@@ -259,7 +333,10 @@
     },
     "selectBatch": "Select batch",
     "setConsumerPrice": "Set Consumer Price (₹ total)",
-    "buttons": { "pay": "Pay Distributor (Stripe)", "refresh": "Refresh" },
+    "buttons": {
+      "pay": "Pay Distributor (Stripe)",
+      "refresh": "Refresh"
+    },
     "starting": "Starting…",
     "messages": {
       "login": "Please login to continue",
@@ -285,7 +362,10 @@
   "consumers": {
     "title": "ଗ୍ରାହକ ଡ୍ୟାଶ୍‌ବୋର୍ଡ୍",
     "selectBatch": "ବ୍ୟାଚ୍ ବାଛନ୍ତୁ",
-    "buttons": { "pay": "ଖୁଦ୍ରାଙ୍କୁ ପେମେଣ୍ଟ (Stripe)", "refresh": "ରିଫ୍ରେସ୍" },
+    "buttons": {
+      "pay": "ଖୁଦ୍ରାଙ୍କୁ ପେମେଣ୍ଟ (Stripe)",
+      "refresh": "ରିଫ୍ରେସ୍"
+    },
     "starting": "ଆରମ୍ଭ ହେଉଛି…",
     "messages": {
       "login": "ଦୟାକରି ଆଗକୁ ବଢ଼ିବାକୁ ଲଗ୍ଇନ୍ କରନ୍ତୁ",
