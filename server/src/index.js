@@ -84,7 +84,7 @@ async function getVerificationStatusChain(batchId) {
     if (!code) return null
     const out = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'getVerification', args: [BigInt(batchId)] })
     const statusNum = Number(out?.[0] ?? 0)
-    return { status: vNumToLabel(statusNum), by: out?.[1] || null, timestamp: Number(out?.[2] || 0n) }
+    return { status: vNumToLabel(statusNum), by: out?.[1] || null, timestamp: Number(out?.[2] || 0n), verificationMetadataCID: out?.[3] || null }
   } catch { return null }
 }
 

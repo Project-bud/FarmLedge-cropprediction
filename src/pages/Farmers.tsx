@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAvailableCrops, getSeasonalityFactor, fetchRecentPrice } from "@/lib/pricePrediction";
 import TestingAddresses from "@/components/TestingAddresses";
 import { DEFAULT_ADDRESSES, isHexAddress } from "@/lib/addresses";
-import { uploadJSONToIPFS } from "@/lib/ipfs";
+import { uploadJSONToIPFS, uploadFileToIPFS } from "@/lib/ipfs";
 import {
   Table,
   TableBody,
@@ -36,18 +36,22 @@ import {
   Calendar as CalendarIcon,
   Plus,
   Search,
-  ArrowUpRight
+  ArrowUpRight,
+  Image as ImageIcon
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
+import seasonalityDataRaw from '@/data/seasonality_database.json';
 
 const Farmers = () => {
   const [form, setForm] = useState<{ cropType: string; quantityKg: string; basePricePerKg: string; harvestDate: string; farmerAddress: string; expiryDate: string; description: string; location: string }>({ cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", farmerAddress: DEFAULT_ADDRESSES.FARMER as string, expiryDate: "", description: "", location: "" });
   const [page, setPage] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isPerishable, setIsPerishable] = useState(false);
   const nav = useNavigate();
   const { t } = useTranslation();
 
@@ -104,6 +108,39 @@ const Farmers = () => {
     return () => clearTimeout(timer);
   }, [form.cropType]);
 
+  // Auto-fill expiry date based on harvest date and crop shelf life
+  useEffect(() => {
+    if (form.cropType) {
+      const cropData = (seasonalityDataRaw as any).crops[form.cropType];
+      if (cropData) {
+        setIsPerishable(cropData.perishability_type === 'High');
+      } else {
+        setIsPerishable(false);
+      }
+    }
+
+    if (form.harvestDate && form.cropType) {
+      // Cast to any because we just added new fields that might not be in the type definition yet
+      const cropData = (seasonalityDataRaw as any).crops[form.cropType];
+      
+      if (cropData && cropData.min_days_shelf_life) {
+        const harvest = new Date(form.harvestDate);
+        if (!isNaN(harvest.getTime())) {
+          const expiry = new Date(harvest);
+          expiry.setDate(harvest.getDate() + cropData.min_days_shelf_life);
+          
+          // Format as YYYY-MM-DD
+          const expiryString = expiry.toISOString().split('T')[0];
+          
+          setForm(prev => ({
+            ...prev,
+            expiryDate: expiryString
+          }));
+        }
+      }
+    }
+  }, [form.harvestDate, form.cropType]);
+
   const register = async () => {
     try {
       setSubmitting(true)
@@ -145,6 +182,13 @@ const Farmers = () => {
       // IPFS Upload Logic
       let metadataCID = "";
       try {
+        let imageCID = "";
+        if (selectedImage) {
+          toast.info("Uploading image to IPFS...");
+          imageCID = await uploadFileToIPFS(selectedImage);
+          console.log("Image CID:", imageCID);
+        }
+
         toast.info("Uploading metadata to IPFS...");
         const metadata = {
           cropType: form.cropType,
@@ -154,7 +198,8 @@ const Farmers = () => {
           expiryDate: form.expiryDate,
           description: form.description,
           location: form.location,
-          farmerAddress
+          farmerAddress,
+          imageCID // Add image CID to metadata
         };
         metadataCID = await uploadJSONToIPFS(metadata);
         console.log("IPFS CID:", metadataCID);
@@ -181,6 +226,7 @@ const Farmers = () => {
         nav(`/batch?id=${encodeURIComponent(data.batchId)}`)
       }
       setForm({ ...form, cropType: "", quantityKg: "", basePricePerKg: "", harvestDate: "", expiryDate: "", description: "", location: "" });
+      setSelectedImage(null);
     } catch (e: any) {
       console.error(e);
       toast.error(`${t('farmers.errors.registerFailed')}${e?.message ? `: ${e.message}` : ''}`);
@@ -337,7 +383,29 @@ const Farmers = () => {
                     </div>
                   </div>
                 </div>
-                      {/* //removed vijays ui */}
+
+                {isPerishable && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <Label className="flex items-center gap-2 text-amber-700">
+                      <ImageIcon className="w-4 h-4" />
+                      Evidence for Fast Perishable Goods (Optional)
+                    </Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setSelectedImage(e.target.files[0]);
+                        }
+                      }}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                    />
+                    <p className="text-[10px] text-slate-500">
+                      Upload an image of the harvested crop to help verifiers validate quality remotely.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>{t('farmers.form.farmerAddress')}</Label>
                   <Input

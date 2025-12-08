@@ -44,7 +44,7 @@ contract AgriTruthChain {
     event OwnershipTransferred(uint256 indexed batchId, address indexed from, address indexed to);
     event VerifierSet(address indexed verifier, bool allowed);
     event PricesUpdatedINR(uint256 indexed batchId, uint256 minPriceINR, uint256 priceByDistributorINR, uint256 priceByRetailerINR);
-    event VerificationStatusUpdated(uint256 indexed batchId, uint8 status, address indexed by, uint256 at);
+    event VerificationStatusUpdated(uint256 indexed batchId, uint8 status, address indexed by, uint256 at, string verificationMetadataCID);
     event BatchSplit(uint256 indexed parentId, uint256 indexed newBatchId, uint256 quantity);
 
     modifier onlyOwner() { require(msg.sender == owner, "not-owner"); _; }
@@ -167,13 +167,13 @@ contract AgriTruthChain {
             b.quantityKg = verifiedQuantity;
         }
 
-        emit VerificationStatusUpdated(batchId, status, msg.sender, block.timestamp);
+        emit VerificationStatusUpdated(batchId, status, msg.sender, block.timestamp, verificationMetadataCID);
     }
 
-    function getVerification(uint256 batchId) external view returns (uint8 status, address by, uint256 at) {
+    function getVerification(uint256 batchId) external view returns (uint8 status, address by, uint256 at, string memory verificationMetadataCID) {
         Batch storage b = batches[batchId];
         require(b.exists, "batch-not-found");
-        return (b.verificationStatus, b.verificationBy, b.verificationAt);
+        return (b.verificationStatus, b.verificationBy, b.verificationAt, b.verificationMetadataCID);
     }
 
     function getAllBatchIds() external view returns (uint256[] memory) { 

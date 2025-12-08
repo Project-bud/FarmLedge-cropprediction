@@ -32,7 +32,8 @@ export const AGRI_TRUTH_CHAIN_ABI = [
     type: "function", name: "getVerification", stateMutability: "view", inputs: [{ name: "batchId", type: "uint256" }], outputs: [
       { name: "status", type: "uint8" },
       { name: "by", type: "address" },
-      { name: "at", type: "uint256" }
+      { name: "at", type: "uint256" },
+      { name: "verificationMetadataCID", type: "string" }
     ]
   },
   { type: "function", name: "setMinPriceInr", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }, { name: "minPriceINR", type: "uint256" }], outputs: [] },
@@ -103,7 +104,8 @@ export const AGRI_TRUTH_CHAIN_ABI = [
       { name: "batchId", type: "uint256", indexed: true },
       { name: "status", type: "uint8", indexed: false },
       { name: "by", type: "address", indexed: true },
-      { name: "at", type: "uint256", indexed: false }
+      { name: "at", type: "uint256", indexed: false },
+      { name: "verificationMetadataCID", type: "string", indexed: false }
     ], anonymous: false
   },
   {

@@ -24,8 +24,14 @@ import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { uploadJSONToIPFS, uploadFileToIPFS } from "@/lib/ipfs";
+import seasonalityDataRaw from '@/data/seasonality_database.json';
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, ImageIcon } from "lucide-react";
 
 type VerificationStatus = "unverified" | "pending" | "verified";
+
+const PINATA_GATEWAY = "https://lime-negative-turtle-558.mypinata.cloud/ipfs";
+const PINATA_TOKEN = "SsBoLdLh4Oa8YZV7IdSIeoANLO_4TG6dX1iL2r1tVe2YS9d6kupnN9QRzjU5d3Uf";
 
 export default function Verifiers() {
   const { user } = useAuth();
@@ -48,17 +54,38 @@ export default function Verifiers() {
   const [verifiedQuantity, setVerifiedQuantity] = useState<number>(0);
   const [verificationImage, setVerificationImage] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [batchMetadata, setBatchMetadata] = useState<Record<string, any>>({});
 
   const fetchBatches = async () => {
     try {
       const res = await fetch("/api/batches");
       const data = await res.json();
       setBatches(data.batches || []);
+      
+      // Fetch metadata for batches that have a CID
+      data.batches?.forEach(async (batch: any) => {
+        if (batch.metadataCID && !batchMetadata[batch.id]) {
+          try {
+            const metaRes = await fetch(`${PINATA_GATEWAY}/${batch.metadataCID}?pinataGatewayToken=${PINATA_TOKEN}`);
+            if (metaRes.ok) {
+              const meta = await metaRes.json();
+              setBatchMetadata(prev => ({ ...prev, [batch.id]: meta }));
+            }
+          } catch (err) {
+            console.error(`Failed to fetch metadata for batch ${batch.id}`, err);
+          }
+        }
+      });
     } catch (e: any) {
       setError(e?.message || t('verifier.errors.loadFailed'));
     }
   };
   useEffect(() => { fetchBatches(); }, []);
+
+  const isFastPerishable = (cropType: string) => {
+    const cropData = (seasonalityDataRaw as any).crops[cropType];
+    return cropData?.perishability_type === 'High';
+  };
 
   const filteredSorted = useMemo(() => {
     // hide verified as per rules
@@ -246,25 +273,63 @@ export default function Verifiers() {
             </div>
           </div>
           <div className="space-y-3">
-            {filteredSorted.map((b:any) => (
-              <div key={b.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border rounded p-3">
-                <div className="text-sm">
-                  <div className="font-medium break-words">Batch #{b.id} • {b.cropType || '—'} • {b.quantityKg}kg</div>
-                  <div className="text-xs text-muted-foreground">{t('verifier.status')}: {b?.verification?.status || 'unverified'}</div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {((b?.verification?.status || 'unverified') === 'pending') && (
-                    <Button variant="outline" size="sm" onClick={() => setStatus(b.id, 'unverified')} disabled={saving===String(b.id)}>{t('verifier.actions.unverified')}</Button>
-                  )}
-                  {((b?.verification?.status || 'unverified') !== 'verified') && (
-                    <Button variant="outline" size="sm" onClick={() => setStatus(b.id, 'pending')} disabled={saving===String(b.id)}>{t('verifier.actions.pending')}</Button>
-                  )}
-                  {((b?.verification?.status || 'unverified') !== 'verified') && (
-                    <Button variant="success" size="sm" onClick={() => setStatus(b.id, 'verified')} disabled={saving===String(b.id)}>{t('verifier.actions.verified')}</Button>
-                  )}
+            {filteredSorted.map((b:any) => {
+              const isUrgent = isFastPerishable(b.cropType);
+              const metadata = batchMetadata[b.id];
+              const farmerImageCID = metadata?.imageCID;
+
+              return (
+              <div key={b.id} className={`flex flex-col gap-3 border rounded p-3 ${isUrgent ? 'border-amber-200 bg-amber-50/30' : ''}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="text-sm flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="font-medium break-words">Batch #{b.id} • {b.cropType || '—'} • {b.quantityKg}kg</div>
+                      {isUrgent && (
+                        <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Urgent Approval
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{t('verifier.status')}: {b?.verification?.status || 'unverified'}</div>
+                    
+                    {farmerImageCID && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" /> Farmer's Evidence:
+                        </p>
+                        <div className="relative w-24 h-24 rounded-md overflow-hidden border border-slate-200 group">
+                          <img 
+                            src={`${PINATA_GATEWAY}/${farmerImageCID}?pinataGatewayToken=${PINATA_TOKEN}`} 
+                            alt="Farmer evidence" 
+                            className="w-full h-full object-cover"
+                          />
+                          <a 
+                            href={`${PINATA_GATEWAY}/${farmerImageCID}?pinataGatewayToken=${PINATA_TOKEN}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <span className="text-xs text-white font-medium">View</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 self-start sm:self-center">
+                    {((b?.verification?.status || 'unverified') === 'pending') && (
+                      <Button variant="outline" size="sm" onClick={() => setStatus(b.id, 'unverified')} disabled={saving===String(b.id)}>{t('verifier.actions.unverified')}</Button>
+                    )}
+                    {((b?.verification?.status || 'unverified') !== 'verified') && (
+                      <Button variant="outline" size="sm" onClick={() => setStatus(b.id, 'pending')} disabled={saving===String(b.id)}>{t('verifier.actions.pending')}</Button>
+                    )}
+                    {((b?.verification?.status || 'unverified') !== 'verified') && (
+                      <Button variant="success" size="sm" onClick={() => setStatus(b.id, 'verified')} disabled={saving===String(b.id)}>{t('verifier.actions.verified')}</Button>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
+            )})}
             {batches.length === 0 && <div className="text-sm text-muted-foreground">{t('verifier.noBatches')}</div>}
           </div>
         </Card>
