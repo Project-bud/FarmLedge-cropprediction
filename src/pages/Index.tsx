@@ -1,12 +1,12 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock, QrCode, Copy, Link as LinkIcon, Download, Tractor, Store, ShoppingCart, User } from "lucide-react";
+import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock, QrCode, Copy, Link as LinkIcon, Download, Tractor, Store, ShoppingCart, User, Sprout, Target } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -304,6 +304,51 @@ const Index = () => {
   </div>
 </div>
 
+            </div>
+          </div>
+        </section>
+
+        {/* Crop Price Prediction Section */}
+        <section className="py-16 bg-gradient-to-br from-emerald-50 to-white">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl sm:text-4xl font-serif font-bold text-emerald-900 mb-3 flex items-center justify-center gap-2">
+                  <Sprout className="w-8 h-8 text-emerald-600" />
+                  Smart Crop Price Prediction
+                </h2>
+                <p className="text-slate-600 text-lg">Get Real-time price predictions based on your district's soil type</p>
+              </div>
+
+              <Card className="border-emerald-200 shadow-xl bg-white/80 backdrop-blur-sm">
+                <CardContent className="p-6 sm:p-8">
+                  <Link to="/price-prediction" className="block">
+                    <Button 
+                      size="lg" 
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg py-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Target className="w-5 h-5 mr-2" />
+                      Open Advanced Price Predictor
+                      <ChevronRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </Link>
+                  
+                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                    <div className="p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-700">30+</div>
+                      <div className="text-sm text-slate-600">Districts Covered</div>
+                    </div>
+                    <div className="p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-700">8</div>
+                      <div className="text-sm text-slate-600">Soil Types</div>
+                    </div>
+                    <div className="p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-700">93%</div>
+                      <div className="text-sm text-slate-600">Accuracy</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>

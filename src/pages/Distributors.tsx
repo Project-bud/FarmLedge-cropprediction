@@ -15,6 +15,8 @@ import { Loader2, Package, ShoppingCart, RefreshCw, AlertCircle, CheckCircle2, A
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import DistributorMap from "@/components/DistributorMap";
+
 
 const Distributors = () => {
   const [selectedBatch, setSelectedBatch] = useState<string>("");
@@ -454,6 +456,11 @@ const Distributors = () => {
               <TestingAddresses />
             </div>
           </div>
+        </div>
+
+        {/* Collection Route Planner Section */}
+        <div className="mt-12">
+          <DistributorMap />
         </div>
       </main>
       <Footer />

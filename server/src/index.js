@@ -5,6 +5,7 @@ import express from 'express'
 import cors from "cors";
 import Stripe from 'stripe'
 import bodyParser from 'body-parser'
+import polyline from '@mapbox/polyline'
 import { createPublicClient, createWalletClient, decodeEventLog, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { arbitrumSepolia } from 'viem/chains'
@@ -70,6 +71,131 @@ app.use(cors({
 app.get("/", (req, res) => {
   res.json({ ok: true });
 });
+
+// Add JSON parsing middleware for API routes
+app.use('/api', express.json());
+
+// OpenRouteService proxy endpoint (for distributor map routing)
+app.post("/api/get-route", async (req, res) => {
+  try {
+    const { start, end } = req.body;
+    
+    console.log('Route request received:', { start, end });
+    
+    if (!start || !end || !Array.isArray(start) || !Array.isArray(end)) {
+      console.error('Invalid coordinates:', { start, end });
+      return res.status(400).json({ error: 'Invalid coordinates format. Expected [lng, lat] arrays.' });
+    }
+    
+    const ORS_API_KEY = process.env.ORS_API_KEY || '';
+    if (!ORS_API_KEY) {
+      console.error('ORS API key not configured');
+      return res.status(500).json({ error: 'ORS API key not configured. Please add ORS_API_KEY to server/.env file' });
+    }
+    
+    console.log('Calling ORS API...');
+    // Request with geometry to get coordinate arrays
+    const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car', {
+      method: 'POST',
+      headers: {
+        'Authorization': ORS_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        coordinates: [start, end],
+        geometry: true,  // Request geometry coordinates
+        instructions: false  // We don't need turn-by-turn instructions
+      })
+    });
+    
+    console.log('ORS API response status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('ORS API error:', errorData);
+      
+      // Check for specific error codes
+      if (errorData.error && errorData.error.code === 2010) {
+        return res.status(400).json({ 
+          error: 'Could not find route. Coordinates may not be near roads. Try clicking closer to roads on the map.' 
+        });
+      }
+      
+      return res.status(response.status).json({ 
+        error: errorData.error?.message || 'Failed to calculate route from ORS API' 
+      });
+    }
+    
+    const data = await response.json();
+    console.log('ORS Response keys:', Object.keys(data));
+    console.log('Has features?', !!data.features);
+    console.log('Has routes?', !!data.routes);
+    
+    if (data.features && data.features[0]) {
+      console.log('Feature geometry type:', data.features[0].geometry?.type);
+      console.log('Feature geometry coords length:', data.features[0].geometry?.coordinates?.length);
+    }
+    
+    console.log('Route calculated successfully');
+    
+    // Convert GeoJSON response to routes format for frontend compatibility
+    if (data.features && Array.isArray(data.features)) {
+      // GeoJSON format - convert to routes format
+      const routes = data.features.map((feature) => {
+        const route = {
+          summary: feature.properties.summary,
+          geometry: {
+            coordinates: feature.geometry.coordinates,
+            type: feature.geometry.type
+          },
+          segments: feature.properties.segments,
+          bbox: data.bbox
+        };
+        console.log('Converted route geometry coords:', route.geometry.coordinates?.length);
+        return route;
+      });
+      
+      res.json({ routes, metadata: data.metadata });
+    } else if (data.routes) {
+      // Already in routes format - need to decode geometry if it's encoded
+      console.log('Using routes format');
+      
+      const routes = data.routes.map((route) => {
+        let geometry = route.geometry;
+        
+        // Check if geometry is an encoded polyline string
+        if (typeof geometry === 'string') {
+          console.log('Decoding polyline geometry, length:', geometry.length);
+          // Decode polyline to get coordinates
+          const decoded = polyline.decode(geometry);
+          // Polyline.decode returns [lat, lng], we need [lng, lat] for GeoJSON
+          geometry = {
+            type: 'LineString',
+            coordinates: decoded.map(coord => [coord[1], coord[0]])
+          };
+          console.log('Decoded to', geometry.coordinates.length, 'coordinate points');
+        } else if (geometry && geometry.coordinates) {
+          console.log('Geometry already has coordinates:', geometry.coordinates.length);
+        } else {
+          console.warn('No geometry found in route');
+        }
+        
+        return {
+          ...route,
+          geometry
+        };
+      });
+      
+      res.json({ routes, metadata: data.metadata });
+    } else {
+      throw new Error('Unexpected response format from ORS');
+    }
+  } catch (error) {
+    console.error('Route error:', error);
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
+  }
+});
+
 
 let contractHasCode = null
 let contractCodeCheckedAt = 0
