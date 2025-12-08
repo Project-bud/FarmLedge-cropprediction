@@ -37,7 +37,8 @@ import {
   Plus,
   Search,
   ArrowUpRight,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ShieldCheck
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -58,14 +59,29 @@ const Farmers = () => {
   const [suggestedPrice, setSuggestedPrice] = useState<string | null>(null);
   const availableCrops = getAvailableCrops();
 
+  const { data: guideData, isFetching: guideLoading } = useQuery({
+    queryKey: ['crop-guide', form.cropType],
+    queryFn: async () => {
+      const res = await fetch(`/api/crop-guides/${encodeURIComponent(form.cropType)}`)
+      if (!res.ok) throw new Error('guide_not_found')
+      return res.json()
+    },
+    enabled: !!form.cropType,
+    staleTime: 10 * 60 * 1000,
+    retry: false
+  })
+
+  const guide = guideData?.guide
+
   // Fetch batches with pagination and filtering
-  const { data: batchesData, isLoading, refetch } = useQuery({
+  const { data: batchesData, isLoading, error: batchesError, refetch } = useQuery({
     queryKey: ['batches', form.farmerAddress, page],
     queryFn: async () => {
       // Use currentOwner filter to show only batches currently held by this address
       const res = await fetch(`/api/batches?limit=5&page=${page}&currentOwner=${form.farmerAddress}`);
-      if (!res.ok) throw new Error('Failed to fetch batches');
-      return res.json();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || 'Failed to fetch batches');
+      return json;
     },
     enabled: !!form.farmerAddress && isHexAddress(form.farmerAddress)
   });
@@ -405,7 +421,7 @@ const Farmers = () => {
                     </p>
                   </div>
                 )}
-
+                  {/* Registration Form + Zero-loss guide */}
                 <div className="space-y-2">
                   <Label>{t('farmers.form.farmerAddress')}</Label>
                   <Input
@@ -437,6 +453,81 @@ const Farmers = () => {
               </CardContent>
             </Card>
 
+            {form.cropType ? (
+              <Card className="shadow-sm border border-emerald-100 bg-emerald-50/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-emerald-800">
+                    <ShieldCheck className="w-5 h-5" />
+                    Zero-loss guide: {form.cropType}
+                  </CardTitle>
+                  <CardDescription>Practical steps to slow spoilage and alternate market options.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-slate-700">
+                  {guideLoading ? (
+                    <p className="text-slate-500">Loading guidance...</p>
+                  ) : guide ? (
+                    <>
+                      {guide?.zeroLossMeasures?.primary ? (
+                        <div>
+                          <p className="font-semibold text-slate-800">Primary handling</p>
+                          <p className="text-slate-600">{guide.zeroLossMeasures.primary}</p>
+                        </div>
+                      ) : null}
+
+                      {guide?.zeroLossMeasures?.secondary?.length ? (
+                        <div>
+                          <p className="font-semibold text-slate-800">Secondary steps</p>
+                          <div className="space-y-1">
+                            {guide.zeroLossMeasures.secondary.map((item: string, idx: number) => (
+                              <p key={idx} className="text-slate-600">• {item}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {guide?.zeroLossMeasures?.processingOptions?.length ? (
+                        <div>
+                          <p className="font-semibold text-slate-800">Processing options</p>
+                          <div className="space-y-1">
+                            {guide.zeroLossMeasures.processingOptions.slice(0, 3).map((opt: any, idx: number) => (
+                              <p key={idx} className="text-slate-600">• {opt.type}{opt.relatedUnits?.length ? ` — ${opt.relatedUnits.join(', ')}` : ''}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {guide?.alternateMarkets?.length ? (
+                        <div>
+                          <p className="font-semibold text-slate-800">Alternate markets</p>
+                          <div className="space-y-1">
+                            {guide.alternateMarkets.slice(0, 2).map((m: any, idx: number) => (
+                              <p key={idx} className="text-slate-600">• {m.marketType}: {m.description}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {guide?.shelfLife?.normal || guide?.shelfLife?.coldStorage ? (
+                        <div className="text-slate-600">
+                          <p className="font-semibold text-slate-800">Shelf life</p>
+                          <p>
+                            {guide?.shelfLife?.normal ? `Ambient: ${guide.shelfLife.normal}. ` : ''}
+                            {guide?.shelfLife?.coldStorage ? `Cold: ${guide.shelfLife.coldStorage}.` : ''}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {!guide?.zeroLossMeasures && !guide?.alternateMarkets ? (
+                        <p className="text-slate-500">No guidance found yet for this crop.</p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="text-slate-500">No guidance found for this crop.</p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+
             <div className="bg-slate-100 p-4 rounded-lg border border-slate-200">
               <h4 className="font-semibold text-sm mb-2 text-slate-700">Dev Tools</h4>
               <TestingAddresses />
@@ -454,6 +545,12 @@ const Farmers = () => {
                 {isLoading ? (
                   <div className="text-center py-12 text-slate-400">
                     <p>{t('common.loading')}</p>
+                  </div>
+                ) : batchesError ? (
+                  <div className="text-center py-12 text-red-600">
+                    <Tractor className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p>Unable to load batches.</p>
+                    <p className="text-sm text-red-500">{(batchesError as Error).message}</p>
                   </div>
                 ) : batches.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">

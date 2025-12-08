@@ -23,6 +23,9 @@ import Support from "./pages/Support";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
+import WeatherAlerts from "./pages/WeatherAlerts";
+import GovSchemes from "./pages/GovSchemes";
+import FarmerGuides from "./pages/FarmerGuides";
 import { AuthProvider } from "./context/AuthContext";
 import FarmerProfile from "./pages/profiles/FarmerProfile";
 import DistributorProfile from "./pages/profiles/DistributorProfile";
@@ -48,6 +51,9 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/batch" element={<BatchDetails />} />
             <Route path="/price-prediction" element={<PricePrediction />} />
+            <Route path="/weather-alerts" element={<WeatherAlerts />} />
+            <Route path="/gov-schemes" element={<GovSchemes />} />
+            <Route path="/farmer/guides" element={<FarmerGuides />} />
 
             <Route element={<ProtectedRoute role="farmer" />}> 
               <Route path="/farmers" element={<Farmers />} />

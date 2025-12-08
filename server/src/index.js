@@ -10,6 +10,11 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { arbitrumSepolia } from 'viem/chains'
 import { AGRI_TRUTH_CHAIN_ABI, AGRI_TRUTH_CHAIN_ADDRESS } from './contract.js'
 import { readAll as readVerification, writeFor as writeVerification } from './verificationStore.js'
+import { connectDB } from './db.js'
+import { fetchWeatherAndAlerts, getAlertHistory } from './services/weatherService.js'
+import { listSchemes, upsertSubscription, getSubscriptions, getSubscriptionByFarmer, triggerSchemeTest } from './services/schemesService.js'
+import { listCropGuides, getCropGuideByName } from './services/cropGuidesService.js'
+import { listResources } from './services/awarenessService.js'
 
 // Default EOAs for testing when inputs are missing
 const DEFAULT_ADDRESSES = {
@@ -29,6 +34,11 @@ const __dirname = path.dirname(__filename)
 // Load env from server/.env explicitly (must be before reading process.env values below)
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
+await connectDB().catch((err) => {
+  console.error('MongoDB startup connection error', err)
+  process.exit(1)
+})
+
 const app = express()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const port = process.env.PORT || 3001
@@ -44,7 +54,7 @@ const ownerWallet = ownerAccount ? createWalletClient({ account: ownerAccount, c
 const CONTRACT_ADDRESS = (process.env.AGRI_TRUTH_CHAIN_ADDRESS || AGRI_TRUTH_CHAIN_ADDRESS)
 const isValidAddress = (addr) => typeof addr === 'string' && /^0x[0-9a-fA-F]{40}$/.test(addr)
 const isSameAddress = (a, b) => (a && b) ? a.toLowerCase() === b.toLowerCase() : false
-const N8N_WEBHOOK_SECRET = (process.env.N8N_WEBHOOK_SECRET || N8N_WEBHOOK_SECRET)
+const N8N_WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET || ''
 // All pricing is INR on-chain now; Stripe expects amounts in INR paise (minor units)
 
 // Tiny cache for contract bytecode presence to avoid repeated RPC calls per request
@@ -399,6 +409,96 @@ app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async (req, r
 // Note: duplicate webhook route removed to prevent double handling
 
 app.use(express.json())
+
+// Weather: current conditions and alert generation
+app.get('/api/weather/current', async (req, res) => {
+  try {
+    const { lat, lon, lang, farmerId, batchId } = req.query
+    const result = await fetchWeatherAndAlerts({ lat, lon, lang, farmerId, batchId })
+    res.json({ ok: true, weather: result.weather, alerts: result.alerts })
+  } catch (e) {
+    const msg = e?.message || 'weather_error'
+    let status = 400
+    if (msg === 'OPENWEATHER_API_KEY missing') status = 500
+    else if (msg === 'openweather_unauthorized') status = 401
+    else if (msg === 'openweather_rate_limited') status = 429
+    res.status(status).json({ ok: false, error: msg })
+  }
+})
+
+// Schemes: list and subscriptions (in-memory)
+app.get('/api/schemes', (req, res) => {
+  const data = listSchemes()
+  res.json({ ok: true, schemes: data })
+})
+
+app.get('/api/schemes/subscriptions', async (req, res) => {
+  const subscriptions = await getSubscriptions()
+  res.json({ ok: true, subscriptions })
+})
+
+app.post('/api/schemes/subscribe', async (req, res) => {
+  try {
+    const { farmerId, farmerAddress, phone, language, schemeIds } = req.body || {}
+    if (!phone) return res.status(400).json({ ok: false, error: 'phone_required' })
+    const result = await upsertSubscription({ farmerId, farmerAddress, phone, language, schemeIds })
+    if (!result.ok) return res.status(400).json(result)
+    res.json({ ok: true, subscription: result.subscription })
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'scheme_subscribe_failed' })
+  }
+})
+
+app.post('/api/schemes/notify-test', async (req, res) => {
+  try {
+    const { farmerId } = req.body || {}
+    const result = await triggerSchemeTest(farmerId)
+    res.json({ ok: true, result })
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'scheme_notify_failed' })
+  }
+})
+
+// Zero-loss crop guides: list and lookup by name
+app.get('/api/crop-guides', async (req, res) => {
+  try {
+    const guides = await listCropGuides()
+    res.json({ ok: true, guides })
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'crop_guides_error' })
+  }
+})
+
+app.get('/api/crop-guides/:name', async (req, res) => {
+  try {
+    const guide = await getCropGuideByName(req.params.name)
+    if (!guide) return res.status(404).json({ ok: false, error: 'guide_not_found' })
+    res.json({ ok: true, guide })
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'crop_guide_error' })
+  }
+})
+
+app.get('/api/alerts/history', async (req, res) => {
+  try {
+    const { farmerId, limit } = req.query
+    const alerts = await getAlertHistory({ farmerId, limit })
+    res.json({ ok: true, alerts })
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'alert_history_error' })
+  }
+})
+
+// Awareness resources (CFTRI/KVK/etc.)
+app.get('/api/awareness', async (req, res) => {
+  try {
+    const { crop, scope, scheme, limit } = req.query
+    const resources = await listResources({ crop, scope, scheme, limit: limit ? Number(limit) : 20 })
+    res.json({ ok: true, resources })
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'awareness_error' })
+  }
+})
 
 app.post('/create-checkout-session', async (req, res) => {
   try {
@@ -921,6 +1021,69 @@ app.get('/api/batch/:id', async (req, res) => {
   }
 })
 
+// Zero-loss options for a batch using crop guide + awareness resources
+app.get('/api/batch/:id/zero-loss', async (req, res) => {
+  try {
+    if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(400).json({ error: 'invalid_contract_address' })
+    const idStr = req.params.id
+    if (!/^[0-9]+$/.test(idStr)) return res.status(400).json({ error: 'invalid_id' })
+    const id = BigInt(idStr)
+    const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
+    if (!code) return res.status(400).json({ error: 'not_a_contract' })
+
+    let b
+    try {
+      b = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [id] })
+    } catch { }
+    if (!b || !b[12]) return res.status(404).json({ error: 'not_found' })
+
+    const batch = {
+      id: Number(b[0]),
+      cropType: b[6],
+      quantityKg: Number(b[7] || 0n),
+      expiryDate: Number(b[24] || 0n),
+      basePriceINR: b[8]?.toString?.() ?? '0',
+      minPriceINR: b[13]?.toString?.() ?? '0'
+    }
+
+    // Decode expiry/price from metadata if missing
+    try {
+      if (typeof b[10] === 'string' && b[10].startsWith('meta:')) {
+        const m = JSON.parse(b[10].slice(5))
+        if (m?.expiryDate && !batch.expiryDate) batch.expiryDate = Number(m.expiryDate)
+        if (m?.basePriceINR && (!batch.basePriceINR || batch.basePriceINR === '0')) batch.basePriceINR = String(m.basePriceINR)
+        if (m?.minPriceINR && (!batch.minPriceINR || batch.minPriceINR === '0')) batch.minPriceINR = String(m.minPriceINR)
+      }
+    } catch { }
+
+    const nowSec = Math.floor(Date.now() / 1000)
+    const daysRemaining = batch.expiryDate ? Math.ceil((batch.expiryDate - nowSec) / 86400) : null
+    const urgency = daysRemaining == null ? 'unknown' : daysRemaining <= 3 ? 'critical' : daysRemaining <= 7 ? 'urgent' : 'normal'
+
+    const guide = await getCropGuideByName(batch.cropType)
+    const awareness = await listResources({ crop: batch.cropType })
+
+    const options = []
+    if (guide?.zeroLossMeasures?.primary) {
+      options.push({ option: 'Flash sale / immediate action', description: guide.zeroLossMeasures.primary, recommendation: urgency })
+    }
+    if (guide?.zeroLossMeasures?.processingOptions?.length) {
+      options.push({ option: 'Processing', description: 'Move to processing unit', processors: guide.zeroLossMeasures.processingOptions, recommendation: 'good' })
+    }
+    if (guide?.alternateMarkets?.length) {
+      const markets = guide.alternateMarkets.map((m) => ({ type: m.marketType, description: m.description, priceRange: m.priceRange, processingTime: m.processingTime }))
+      options.push({ option: 'Alternate markets', markets, recommendation: 'good' })
+    }
+    if (guide?.mnregaPotential?.eligible) {
+      options.push({ option: 'MNREGA waste-to-wages', dailyWage: guide.mnregaPotential.dailyWage, wasteConversionRate: guide.mnregaPotential.wasteConversionRate, recommendation: 'conditional' })
+    }
+
+    res.json({ ok: true, batch: { id: batch.id, cropType: batch.cropType, daysRemaining, urgency }, guide, options, awareness })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'zero_loss_error' })
+  }
+})
+
 // Verification: get single or all statuses
 app.get('/api/verification-status/:id?', (req, res) => {
   try {
@@ -1147,7 +1310,6 @@ const checkExpiryHandler = async (req, res) => {
     console.log('[cron] Checking for expiring batches...')
     if (!isValidAddress(CONTRACT_ADDRESS)) return res.status(500).json({ error: 'contract_not_ready' })
     
-    // 1. Get all batch IDs
     let ids = []
     try {
       ids = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'getAllBatchIds' })
@@ -1158,28 +1320,39 @@ const checkExpiryHandler = async (req, res) => {
 
     const now = Math.floor(Date.now() / 1000)
     const ONE_DAY = 24 * 60 * 60
+    const WINDOWS = [30, 14, 7, 1]
     const alertsSent = []
+    const recommendedSchemes = listSchemes().slice(0, 3)
 
-    // 2. Check each batch
     for (const id of ids) {
       try {
         const b = await client.readContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'batches', args: [id] })
-        // b[24] is expiryDate, b[1] is currentOwner, b[2] is farmer
         const expiryDate = Number(b[24] || 0n)
         const currentOwner = b[1]
         const farmer = b[2]
 
-        if (expiryDate > 0) {
-            const timeLeft = expiryDate - now
-            // Check if expiring within the next 24 hours
-            if (timeLeft > 0 && timeLeft <= ONE_DAY) {
-                // Check ownership: only notify if still owned by farmer
-                if (isSameAddress(currentOwner, farmer)) {
-                    await sendWhatsAppMessage(farmer, id, expiryDate)
-                    alertsSent.push({ batchId: id.toString(), farmer, expiryDate })
-                }
-            }
-        }
+        if (!expiryDate || expiryDate <= 0) continue
+        const timeLeft = expiryDate - now
+        if (timeLeft <= 0) continue
+
+        const windowDays = WINDOWS.find((days) => timeLeft <= days * ONE_DAY && timeLeft > (days - 1) * ONE_DAY)
+        if (!windowDays) continue
+        if (!isSameAddress(currentOwner, farmer)) continue
+
+        const sub = await getSubscriptionByFarmer(farmer)
+        if (!sub?.phone) continue
+
+        await sendWhatsAppMessage({
+          phone: sub.phone,
+          farmerAddress: farmer,
+          language: sub.language || 'en',
+          batchId: id,
+          expiryDate,
+          windowDays,
+          schemes: recommendedSchemes,
+          schemeIds: sub.schemeIds || recommendedSchemes.map((s) => s.id)
+        })
+        alertsSent.push({ batchId: id.toString(), farmer, expiryDate, windowDays, phone: sub.phone })
       } catch (e) {
         console.warn(`[cron] Failed to check batch ${id}`, e)
       }
@@ -1195,34 +1368,51 @@ const checkExpiryHandler = async (req, res) => {
 app.post('/api/cron/check-expiry', checkExpiryHandler)
 app.post('/api/cron/check-expire', checkExpiryHandler)
 
-async function sendWhatsAppMessage(toAddress, batchId, expiryDate) {
-    const dateStr = new Date(expiryDate * 1000).toLocaleDateString()
-    // Use the production webhook URL as requested
-    const webhookUrl = N8N_WEBHOOK_SECRET
+async function sendWhatsAppMessage({ phone, farmerAddress, language = 'en', batchId, expiryDate, windowDays, schemes = [], schemeIds = [] }) {
+  const dateStr = new Date(expiryDate * 1000).toLocaleDateString()
+  const webhookUrl = N8N_WEBHOOK_SECRET
+  if (!webhookUrl) {
+    console.warn('[WHATSAPP] N8N_WEBHOOK_SECRET not set; skipping send')
+    return
+  }
+
+  const schemePayload = schemes.slice(0, 3).map((s) => ({
+    id: s.id,
+    name: s.name,
+    summary: s.summary,
+    applyUrl: s.applyUrl,
+    documents: s.documents,
+    window: s.window,
+  }))
+
+  console.log(`[WHATSAPP] Sending webhook request for Batch #${batchId} to phone=${phone}`)
     
-    console.log(`[WHATSAPP] Sending webhook request for Batch #${batchId} to ${toAddress}`)
-    
-    try {
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                toAddress,
-                batchId: batchId.toString(),
-                expiryDate,
-                expiryDateString: dateStr,
-                message: `Farmer, your batch #${batchId} is going to expire on ${dateStr}. Prepare and apply for govt scheme if possible.`
-            })
-        })
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        phone,
+        farmerAddress,
+        language,
+        batchId: batchId.toString(),
+        expiryDate,
+        expiryDateString: dateStr,
+        windowDays,
+        schemeIds,
+        schemes: schemePayload,
+        message: `Batch #${batchId} expires on ${dateStr}. Apply/renew key schemes (PMFBY, KCC, PM-KISAN) to reduce losses. Window: ~${windowDays} days left.`
+      })
+    })
         
-        if (!response.ok) {
-            console.error(`[WHATSAPP] Webhook failed with status ${response.status}`)
-        } else {
-            console.log(`[WHATSAPP] Webhook sent successfully`)
-        }
-    } catch (error) {
-        console.error(`[WHATSAPP] Error sending webhook:`, error)
+    if (!response.ok) {
+      console.error(`[WHATSAPP] Webhook failed with status ${response.status}`)
+    } else {
+      console.log(`[WHATSAPP] Webhook sent successfully`)
     }
+  } catch (error) {
+    console.error(`[WHATSAPP] Error sending webhook:`, error)
+  }
 }

@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { IndianRupee } from "lucide-react";
+import { ZeroLossPanel } from "@/components/ZeroLossPanel";
 
 
 
@@ -101,6 +102,7 @@ export default function BatchDetails() {
     );
   }
 
+  // Timeline Steps Configuration
   const batch = data.batch;
 
   // Timeline Steps Configuration
@@ -172,6 +174,9 @@ export default function BatchDetails() {
       <Navigation />
 
       <main className="container mx-auto px-4 py-24 sm:py-28 max-w-4xl">
+        {/* Zero-loss action panel */}
+        {id ? <ZeroLossPanel batchId={id} cropType={batch?.cropType} /> : null}
+
         {/* Header Section */}
         <div className="mb-12">
           <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium mb-2">

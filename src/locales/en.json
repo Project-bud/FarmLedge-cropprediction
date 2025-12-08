@@ -18,6 +18,7 @@
     "login": "Login",
     "verifiers": "Verifiers",
     "pricePrediction": "Price Prediction",
+    "weatherAlerts": "Weather Alerts",
     "connect_wallet": "Connect Wallet"
   },
   "footer": {

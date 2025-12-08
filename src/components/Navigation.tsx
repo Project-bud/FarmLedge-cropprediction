@@ -33,6 +33,15 @@ const Navigation = () => {
     { label: t("nav.home"), href: "/" },
     { label: t("nav.pricePrediction"), href: "/price-prediction" },
     {
+      label: "Services",
+      href: "#",
+      children: [
+        { label: t("nav.weatherAlerts"), href: "/weather-alerts" },
+        { label: "Government Schemes", href: "/gov-schemes" },
+        { label: "Zero-loss Guides", href: "/farmer/guides" }
+      ]
+    },
+    {
       label: t("nav.aboutUs"),
       href: "#",
       children: [
@@ -144,6 +153,9 @@ const Navigation = () => {
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild><Link to="/farmers">{t("nav.farmers")}</Link></DropdownMenuItem>
+                  {user?.role === 'farmer' ? (
+                    <DropdownMenuItem asChild><Link to="/farmer/guides">Zero-loss Guides</Link></DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem asChild><Link to="/distributors">{t("nav.distributors")}</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/retailers">{t("nav.retailers")}</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/consumers">{t("nav.consumers")}</Link></DropdownMenuItem>
