@@ -44,7 +44,7 @@ const ownerWallet = ownerAccount ? createWalletClient({ account: ownerAccount, c
 const CONTRACT_ADDRESS = (process.env.AGRI_TRUTH_CHAIN_ADDRESS || AGRI_TRUTH_CHAIN_ADDRESS)
 const isValidAddress = (addr) => typeof addr === 'string' && /^0x[0-9a-fA-F]{40}$/.test(addr)
 const isSameAddress = (a, b) => (a && b) ? a.toLowerCase() === b.toLowerCase() : false
-const N8N_WEBHOOK_SECRET = (process.env.N8N_WEBHOOK_SECRET || N8N_WEBHOOK_SECRET)
+const N8N_WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET || ''
 // All pricing is INR on-chain now; Stripe expects amounts in INR paise (minor units)
 
 // Tiny cache for contract bytecode presence to avoid repeated RPC calls per request

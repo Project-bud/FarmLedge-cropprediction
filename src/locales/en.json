@@ -458,7 +458,7 @@
   },
   "prediction": {
     "title": "Crop Price Prediction",
-    "subtitle": "AI-powered price forecasting for Odisha State",
+    "subtitle": "Real-time price forecasting for Odisha State",
     "selectCrop": "Select Crop",
     "selectCropDesc": "Choose a crop to see today's price prediction based on historical seasonality.",
     "predictedPrice": "Predicted Price",
