@@ -33,14 +33,14 @@ const Navigation = () => {
     { label: t("nav.home"), href: "/" },
     { label: t("nav.pricePrediction"), href: "/price-prediction" },
     {
-      label: "About Us",
+      label: t("nav.aboutUs"),
       href: "#",
       children: [
-        { label: "How It Works", href: "/how-it-works" },
-        { label: "Blockchain Guide", href: "/blockchain-guide" },
-        { label: "Fair Trade", href: "/fair-trade" },
-        { label: "API Docs", href: "/api-docs" },
-        { label: "Support", href: "/support" },
+        { label: t("nav.howItWorks"), href: "/how-it-works" },
+        { label: t("nav.blockchainGuide"), href: "/blockchain-guide" },
+        { label: t("nav.fairTrade"), href: "/fair-trade" },
+        { label: t("nav.apiDocs"), href: "/api-docs" },
+        { label: t("nav.support"), href: "/support" },
       ]
     },
   ];
