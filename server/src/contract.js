@@ -27,7 +27,7 @@ export const AGRI_TRUTH_CHAIN_ABI = [
   { type: "function", name: "transferOwnership", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }, { name: "to", type: "address" }], outputs: [] },
   { type: "function", name: "transferOwnershipByVerifier", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }, { name: "to", type: "address" }], outputs: [] },
   { type: "function", name: "splitBatchByVerifier", stateMutability: "nonpayable", inputs: [{ name: "parentBatchId", type: "uint256" }, { name: "splitQuantity", type: "uint256" }, { name: "newOwner", type: "address" }], outputs: [{ name: "newBatchId", type: "uint256" }] },
-  { type: "function", name: "setVerificationStatus", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }, { name: "status", type: "uint8" }], outputs: [] },
+  { type: "function", name: "setVerificationStatus", stateMutability: "nonpayable", inputs: [{ name: "batchId", type: "uint256" }, { name: "status", type: "uint8" }, { name: "verificationMetadataCID", type: "string" }, { name: "verifiedQuantity", type: "uint256" }], outputs: [] },
   {
     type: "function", name: "getVerification", stateMutability: "view", inputs: [{ name: "batchId", type: "uint256" }], outputs: [
       { name: "status", type: "uint8" },
@@ -64,7 +64,8 @@ export const AGRI_TRUTH_CHAIN_ABI = [
       { name: "verificationAt", type: "uint256" },
       { name: "parentId", type: "uint256" },
       { name: "isSplit", type: "bool" },
-      { name: "expiryDate", type: "uint64" }
+      { name: "expiryDate", type: "uint64" },
+      { name: "verificationMetadataCID", type: "string" }
     ]
   },
   { type: "function", name: "getAllBatchIds", stateMutability: "view", inputs: [], outputs: [{ type: "uint256[]" }] },

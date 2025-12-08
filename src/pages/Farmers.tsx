@@ -337,26 +337,7 @@ const Farmers = () => {
                     </div>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Description (Off-Chain)</Label>
-                    <Input
-                      placeholder="Crop quality..."
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Location (Off-Chain)</Label>
-                    <Input
-                      placeholder="Farm Location..."
-                      value={form.location}
-                      onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    />
-                  </div>
-                </div>
-
+                      {/* //removed vijays ui */}
                 <div className="space-y-2">
                   <Label>{t('farmers.form.farmerAddress')}</Label>
                   <Input

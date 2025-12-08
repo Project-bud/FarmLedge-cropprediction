@@ -31,6 +31,7 @@ contract AgriTruthChain {
         uint256 parentId; // 0 if root
         bool isSplit;
         uint64 expiryDate;
+        string verificationMetadataCID;
     }
 
     uint256 public nextBatchId = 1;
@@ -152,7 +153,7 @@ contract AgriTruthChain {
         _updateOwner(batchId, to);
     }
 
-    function setVerificationStatus(uint256 batchId, uint8 status) external {
+    function setVerificationStatus(uint256 batchId, uint8 status, string calldata verificationMetadataCID, uint256 verifiedQuantity) external {
         require(verifiers[msg.sender] || msg.sender == owner, "not-verifier");
         require(status <= 2, "bad-status");
         Batch storage b = batches[batchId];
@@ -160,6 +161,12 @@ contract AgriTruthChain {
         b.verificationStatus = status;
         b.verificationBy = msg.sender;
         b.verificationAt = block.timestamp;
+        b.verificationMetadataCID = verificationMetadataCID;
+
+        if (verifiedQuantity > 0 && verifiedQuantity != b.quantityKg) {
+            b.quantityKg = verifiedQuantity;
+        }
+
         emit VerificationStatusUpdated(batchId, status, msg.sender, block.timestamp);
     }
 

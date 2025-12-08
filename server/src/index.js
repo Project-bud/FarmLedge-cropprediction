@@ -88,14 +88,14 @@ async function getVerificationStatusChain(batchId) {
   } catch { return null }
 }
 
-async function setVerificationStatusChain(batchId, statusLabel) {
+async function setVerificationStatusChain(batchId, statusLabel, verificationMetadataCID, verifiedQuantity) {
   try {
     if (!wallet || !account) return { ok: false, error: 'relayer_not_configured' }
     if (!isValidAddress(CONTRACT_ADDRESS)) return { ok: false, error: 'invalid_contract_address' }
     const code = await client.getBytecode({ address: CONTRACT_ADDRESS })
     if (!code) return { ok: false, error: 'not_a_contract' }
     const statusNum = statusLabel === 'verified' ? 2 : (statusLabel === 'pending' ? 1 : 0)
-    const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setVerificationStatus', args: [BigInt(batchId), statusNum] })
+    const tx = await wallet.writeContract({ address: CONTRACT_ADDRESS, abi: AGRI_TRUTH_CHAIN_ABI, functionName: 'setVerificationStatus', args: [BigInt(batchId), statusNum, verificationMetadataCID || "", BigInt(verifiedQuantity || 0)] })
     await client.waitForTransactionReceipt({ hash: tx })
     return { ok: true, tx }
   } catch (e) { return { ok: false, error: e?.message || 'set_verification_failed' } }
@@ -937,14 +937,14 @@ app.get('/api/verification-status/:id?', (req, res) => {
 app.post('/api/verification-status', (req, res) => {
   (async () => {
     try {
-      const { batchId, status, by } = req.body || {}
+      const { batchId, status, by, verificationMetadataCID, verifiedQuantity } = req.body || {}
       if (!batchId || !/^[0-9]+$/.test(String(batchId))) return res.status(400).json({ error: 'invalid_batch_id' })
       if (!['unverified', 'pending', 'verified'].includes(String(status))) return res.status(400).json({ error: 'invalid_status' })
       // Try on-chain first
-      const onchain = await setVerificationStatusChain(String(batchId), String(status))
+      const onchain = await setVerificationStatusChain(String(batchId), String(status), verificationMetadataCID, verifiedQuantity)
       if (onchain?.ok) return res.json({ ok: true, onchain: true, tx: onchain.tx })
       // Fallback to file store
-      const entry = { status: String(status), by: by || null, timestamp: Date.now() }
+      const entry = { status: String(status), by: by || null, timestamp: Date.now(), verificationMetadataCID, verifiedQuantity }
       writeVerification(String(batchId), entry)
       res.json({ ok: true, onchain: false })
     } catch (e) {
