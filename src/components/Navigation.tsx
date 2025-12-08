@@ -147,6 +147,7 @@ const Navigation = () => {
                   <DropdownMenuItem asChild><Link to="/distributors">{t("nav.distributors")}</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/retailers">{t("nav.retailers")}</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/consumers">{t("nav.consumers")}</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to="/verifiers">{t("nav.verifiers")}</Link></DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={logout}>
                     <LogOut className="w-4 h-4 mr-2" />
