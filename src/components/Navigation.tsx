@@ -1,19 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Leaf, 
-  Menu, 
-  X, 
-  Users, 
-  Shield,
+import {
+  Leaf,
+  Menu,
+  X,
   User,
-  LogOut
+  LogOut,
+  Type,
+  Users
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useAuth } from "@/context/AuthContext";
+import { useFontSize } from "@/context/FontSizeContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,15 +27,22 @@ const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { increaseFontSize, decreaseFontSize, resetFontSize } = useFontSize();
 
   const navItems = [
     { label: t("nav.home"), href: "/" },
-    { label: t("nav.farmers"), href: "/farmers" },
-    { label: t("nav.distributors"), href: "/distributors" },
-    { label: t("nav.retailers"), href: "/retailers" },
-    { label: t("nav.consumers"), href: "/consumers" },
-    { label: t("nav.verifiers"), href: "/verifiers" },
     { label: t("nav.pricePrediction"), href: "/price-prediction" },
+    {
+      label: "About Us",
+      href: "#",
+      children: [
+        { label: "How It Works", href: "/how-it-works" },
+        { label: "Blockchain Guide", href: "/blockchain-guide" },
+        { label: "Fair Trade", href: "/fair-trade" },
+        { label: "API Docs", href: "/api-docs" },
+        { label: "Support", href: "/support" },
+      ]
+    },
   ];
 
   const truncateAddress = (addr?: string) => {
@@ -44,7 +51,7 @@ const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/20 shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/20 shadow-sm font-sans transition-all duration-300">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -61,21 +68,65 @@ const Navigation = () => {
           {/* Desktop Navigation - Centered */}
           <div className="hidden md:flex items-center gap-8 absolute left-1/2 transform -translate-x-1/2">
             {navItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className="text-sm font-medium text-slate-600 hover:text-emerald-800 transition-colors relative group"
-              >
-                {item.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full" />
-              </Link>
+              item.children ? (
+                <DropdownMenu key={item.label}>
+                  <DropdownMenuTrigger className="text-sm font-medium text-slate-600 hover:text-emerald-800 transition-colors relative group flex items-center gap-1 outline-none">
+                    {item.label}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="w-48">
+                    {item.children.map((child) => (
+                      <DropdownMenuItem key={child.label} asChild>
+                        <Link to={child.href} className="cursor-pointer">
+                          {child.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  className="text-sm font-medium text-slate-600 hover:text-emerald-800 transition-colors relative group"
+                >
+                  {item.label}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full" />
+                </Link>
+              )
             ))}
           </div>
 
           {/* Actions - Right */}
           <div className="hidden md:flex items-center gap-4">
+            {/* Font Size Controls */}
+            <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200 mr-2">
+              <button
+                onClick={decreaseFontSize}
+                className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-600 transition-all"
+                title="Decrease Font Size"
+              >
+                <div className="text-xs font-bold">A-</div>
+              </button>
+              <div className="w-px h-4 bg-slate-300 mx-1"></div>
+              <button
+                onClick={resetFontSize}
+                className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-600 transition-all"
+                title="Reset Font Size"
+              >
+                <div className="text-sm font-bold">A</div>
+              </button>
+              <div className="w-px h-4 bg-slate-300 mx-1"></div>
+              <button
+                onClick={increaseFontSize}
+                className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-600 transition-all"
+                title="Increase Font Size"
+              >
+                <div className="text-base font-bold">A+</div>
+              </button>
+            </div>
+
             <LanguageSwitcher />
-            
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -91,6 +142,11 @@ const Navigation = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild><Link to="/farmers">{t("nav.farmers")}</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to="/distributors">{t("nav.distributors")}</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to="/retailers">{t("nav.retailers")}</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to="/consumers">{t("nav.consumers")}</Link></DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={logout}>
                     <LogOut className="w-4 h-4 mr-2" />
@@ -123,15 +179,44 @@ const Navigation = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t border-slate-100 animate-in slide-in-from-top-5">
             {navItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className="block px-4 py-2 text-base font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-900 rounded-lg transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.label}
-              </Link>
+              item.children ? (
+                <div key={item.label} className="space-y-2">
+                  <div className="px-4 text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                    {item.label}
+                  </div>
+                  {item.children.map((child) => (
+                    <Link
+                      key={child.label}
+                      to={child.href}
+                      className="block px-8 py-2 text-base font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-900 rounded-lg transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {child.label}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  className="block px-4 py-2 text-base font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-900 rounded-lg transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              )
             ))}
+
+            {/* Mobile Font Controls */}
+            <div className="px-4 flex items-center gap-4">
+              <span className="text-sm text-slate-500">Font Size:</span>
+              <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
+                <button onClick={decreaseFontSize} className="p-2 hover:bg-white rounded text-xs font-bold">A-</button>
+                <button onClick={resetFontSize} className="p-2 hover:bg-white rounded text-sm font-bold">A</button>
+                <button onClick={increaseFontSize} className="p-2 hover:bg-white rounded text-base font-bold">A+</button>
+              </div>
+            </div>
+
             <div className="px-4 pt-4 border-t border-slate-100">
               {user ? (
                 <Button variant="destructive" className="w-full justify-start" onClick={() => { logout(); setIsMenuOpen(false); }}>
@@ -149,12 +234,6 @@ const Navigation = () => {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Trust Badge - Floating */}
-      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-4 hidden lg:flex items-center gap-2 px-4 py-1.5 bg-white/90 backdrop-blur border border-emerald-100 rounded-full shadow-sm text-xs font-medium text-emerald-800">
-        <Shield className="w-3 h-3 text-emerald-600" />
-        <span>{t('hero.badge')}</span>
       </div>
     </nav>
   );

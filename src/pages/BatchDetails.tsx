@@ -10,13 +10,13 @@ import { IndianRupee } from "lucide-react";
 
 
 
-import { 
-  Sprout, 
-  Truck, 
-  Store, 
-  User, 
-  CheckCircle2, 
-  Circle, 
+import {
+  Sprout,
+  Truck,
+  Store,
+  User,
+  CheckCircle2,
+  Circle,
   Calendar,
   DollarSign,
   Package,
@@ -102,7 +102,7 @@ export default function BatchDetails() {
   }
 
   const batch = data.batch;
-  
+
   // Timeline Steps Configuration
   const steps = [
     {
@@ -110,6 +110,7 @@ export default function BatchDetails() {
       role: t('batchDetails.labels.farmer'),
       icon: Sprout,
       date: batch.harvestDate || batch.createdAt,
+      dateLabel: 'Harvest',
       expiryDate: batch.expiryDate,
       price: batch.minPriceINR || batch.basePriceINR,
       actor: batch.farmer,
@@ -124,6 +125,8 @@ export default function BatchDetails() {
       role: t('batchDetails.roles.distributor'),
       icon: Truck,
       date: batch.dates?.boughtByDistributor,
+      dateLabel: 'Bought',
+      expiryDate: batch.expiryDate,
       price: batch.priceByDistributorINR,
       isCompleted: !!batch.dates?.boughtByDistributor,
       actor: batch.distributor,
@@ -137,6 +140,8 @@ export default function BatchDetails() {
       role: t('batchDetails.roles.retailer'),
       icon: Store,
       date: batch.dates?.boughtByRetailer,
+      dateLabel: 'Bought',
+      expiryDate: batch.expiryDate,
       price: batch.priceByRetailerINR,
       isCompleted: !!batch.dates?.boughtByRetailer,
       actor: batch.retailer,
@@ -150,6 +155,8 @@ export default function BatchDetails() {
       role: t('batchDetails.roles.consumer'),
       icon: User,
       date: batch.dates?.boughtByConsumer,
+      dateLabel: 'Bought',
+      expiryDate: batch.expiryDate,
       price: null, // Consumer doesn't set a price
       actor: null,
       isCompleted: !!batch.dates?.boughtByConsumer,
@@ -163,7 +170,7 @@ export default function BatchDetails() {
   return (
     <div className="min-h-screen bg-slate-50/50 font-sans">
       <Navigation />
-      
+
       <main className="container mx-auto px-4 py-24 sm:py-28 max-w-4xl">
         {/* Header Section */}
         <div className="mb-12">
@@ -205,7 +212,7 @@ export default function BatchDetails() {
                   {t('batchDetails.splitFrom', { id: batch.parentId })}
                 </p>
               </div>
-              <Link 
+              <Link
                 to={`/batch?id=${batch.parentId}`}
                 className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
               >
@@ -220,7 +227,7 @@ export default function BatchDetails() {
           {steps.map((step, index) => {
             const isLast = index === steps.length - 1;
             const isActive = step.isCompleted;
-            
+
             return (
               <div key={step.key} className={cn("relative pl-8 sm:pl-12 transition-all duration-500", isActive ? "opacity-100" : "opacity-50 grayscale")}>
                 {/* Timeline Node */}
@@ -247,7 +254,7 @@ export default function BatchDetails() {
                         <div className="flex flex-wrap gap-2">
                           <Badge variant="secondary" className="w-fit flex items-center gap-1.5 font-mono text-xs">
                             <Calendar className="w-3 h-3" />
-                            Harvest: {new Date(step.date * 1000).toLocaleDateString()}
+                            {step.dateLabel || 'Date'}: {new Date(step.date * 1000).toLocaleDateString()}
                           </Badge>
                           {/* @ts-ignore */}
                           {step.expiryDate && (
@@ -268,7 +275,7 @@ export default function BatchDetails() {
                             <div className="font-mono text-sm text-slate-700 break-all">{step.actor}</div>
                           </div>
                         )}
-                        
+
                         {step.price && (
                           <div className="space-y-1">
                             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('batchDetails.transactionPrice')}</span>
@@ -276,7 +283,7 @@ export default function BatchDetails() {
                               <IndianRupee className="w-4 h-4" />
                               {step.price}
                             </div>
-                            
+
                           </div>
                         )}
 
