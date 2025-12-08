@@ -96,13 +96,39 @@
     "card2Desc": "Simply scan any QR code to trace the complete journey of your food from farm to table."
   },
   "login": {
-    "title": "Login",
-    "description": "Choose your role and sign in with email + password (test-only, no OTP).",
-    "emailPassword": "Email + Password",
-    "email": "Email",
-    "password": "Password",
-    "continue": "Continue",
-    "testNote": "Test-only: accepts any email/password. You'll need to logout to switch roles."
+    "hero": {
+      "badge": "Secure Login",
+      "welcome": "Welcome to",
+      "tagline": "Join the transparent agricultural revolution. Connect, trade, and verify with confidence."
+    },
+    "chooseRole": "Choose your role",
+    "selectAccount": "Select the account type that fits you best",
+    "roleDescriptions": {
+      "farmer": "Grow and manage your crops with blockchain transparency",
+      "distributor": "Transport and track produce across the supply chain",
+      "retailer": "Sell verified products to consumers with confidence",
+      "consumer": "Buy authentic products and track their journey",
+      "verifier": "Verify and validate product authenticity"
+    },
+    "form": {
+      "signInAs": "Sign in as",
+      "accessDashboard": "Access your dashboard",
+      "aadhaar": "Aadhaar Number",
+      "aadhaarPlaceholder": "Enter 12-digit Aadhaar",
+      "aadhaarExample": "For testing, enter any 12 digits",
+      "emailAddress": "Email Address",
+      "emailPlaceholder": "name@company.com",
+      "enterOtp": "Enter OTP",
+      "otpPlaceholder": "• • • • • •",
+      "otpDisplay": "Test OTP:",
+      "getOtp": "Get OTP",
+      "verifyContinue": "Verify & Continue",
+      "testMode": "Test Mode",
+      "demoMode": "Demo Mode:",
+      "demoFarmer": "Enter any 12 digits.",
+      "demoOther": "Enter any email.",
+      "noSending": "No SMS/Email sent."
+    }
   },
   "verifier": {
     "title": "Verifier Dashboard",
