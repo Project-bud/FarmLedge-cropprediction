@@ -199,11 +199,11 @@ const AlertsPanel = () => {
           <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-600">
             <div className="flex items-center gap-2">
               <Droplets className="h-4 w-4 text-blue-600" />
-              Humidity {isBusy ? <Skeleton className="h-4 w-10" /> : formatPercent(current?.main?.humidity)}
+              <span>Humidity {isBusy ? <Skeleton className="inline-block h-4 w-10" /> : formatPercent(current?.main?.humidity)}</span>
             </div>
             <div className="flex items-center gap-2">
               <Wind className="h-4 w-4 text-blue-600" />
-              Wind {isBusy ? <Skeleton className="h-4 w-12" /> : formatNumber(current?.wind?.speed, " m/s")}
+              <span>Wind {isBusy ? <Skeleton className="inline-block h-4 w-12" /> : formatNumber(current?.wind?.speed, " m/s")}</span>
             </div>
           </div>
         </Card>

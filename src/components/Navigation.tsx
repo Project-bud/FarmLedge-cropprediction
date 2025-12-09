@@ -37,6 +37,8 @@ const Navigation = () => {
       href: "#",
       children: [
         { label: t("nav.weatherAlerts"), href: "/weather-alerts" },
+        { label: "Storage Services", href: "/storage-services" },
+        { label: "Location Services", href: "/location-services" },
         { label: "Government Schemes", href: "/gov-schemes" },
         { label: "Zero-loss Guides", href: "/farmer/guides" }
       ]

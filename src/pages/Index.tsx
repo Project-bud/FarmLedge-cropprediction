@@ -1,12 +1,12 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock, QrCode, Copy, Link as LinkIcon, Download, Tractor, Store, ShoppingCart, User } from "lucide-react";
+import { ChevronRight, Search, Package, ArrowRight, Leaf, ShieldCheck, Clock, QrCode, Copy, Link as LinkIcon, Download, Tractor, Store, ShoppingCart, User, Sprout, Target, Beaker, CloudRain, FileText, TrendingUp, Warehouse, Thermometer, Shield, Check, Cloud, Building2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -223,87 +223,233 @@ const Index = () => {
   const openDetails = (b: Batch) => { setSelected(b); setOpen(true); };
 
   return (
-    <div className="min-h-screen bg-stone-50 font-sans text-slate-600">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-green-50 font-sans text-slate-600">
       <Navigation />
       
       <main>
-        {/* Hero Section - Full Width Background */}
-        <section className="relative h-[900px] flex items-center overflow-hidden">
-          {/* Background Slideshow */}
-          <div className="absolute inset-0 z-0">
-            {HERO_IMAGES.map((img, index) => {
-              if (index > 0 && !imagesLoaded) return null;
-              return (
+        {/* Hero Section - Government Style */}
+        <section className="relative pt-32 pb-20 bg-gradient-to-r from-green-800 via-emerald-700 to-green-800 overflow-hidden">
+          {/* Background Pattern */}
+          <div 
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v6h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          ></div>
+
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-6xl mx-auto">
+              {/* Government Header Style */}
+              <div className="flex items-center gap-6 mb-8">
                 <img 
-                  key={img}
-                  src={img} 
-                  alt="Supply Chain Background" 
-                  loading={index === 0 ? "eager" : "lazy"}
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                    index === currentImageIndex ? "opacity-100" : "opacity-0"
-                  }`}
+                  src="/src/assets/odisha-logo.jpg" 
+                  alt="Odisha Government" 
+                  className="w-24 h-24 rounded-full bg-white p-2 shadow-xl"
                 />
-              );
-            })}
-            {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-black/60 z-10"></div>
+                <div>
+                  <Badge className="mb-3 bg-white/20 text-white border-white/30 backdrop-blur-sm text-base px-6 py-2">
+                    Government of Odisha Initiative
+                  </Badge>
+                  <h1 className="text-5xl md:text-6xl font-bold text-white mb-3 leading-tight">
+                    FarmLedge
+                  </h1>
+                  <p className="text-xl text-green-100 font-medium">
+                    Blockchain Verified Supply Chain • Farm to Fork Transparency
+                  </p>
+                </div>
+              </div>
+
+              {/* Main Content */}
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 md:p-12 mb-8">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  Trust in every grain.
+                </h2>
+                <p className="text-2xl text-green-100 mb-8">
+                  Verifiable from Farm to Fork.
+                </p>
+                <p className="text-lg text-white/90 mb-8 max-w-3xl">
+                  Enter a Batch ID to instantly trace the entire journey of your produce on the blockchain.
+                </p>
+
+                {/* Search Box */}
+                <div className="bg-white rounded-xl p-2 flex flex-col md:flex-row gap-3 shadow-2xl max-w-2xl">
+                  <div className="flex-1 flex items-center gap-3 px-4">
+                    <Search className="w-5 h-5 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Enter Batch ID (e.g., 105)"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                      className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-lg"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setBatchId(search);
+                        setQrOpen(true);
+                      }}
+                      className="bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700"
+                    >
+                      <QrCode className="w-5 h-5 mr-2" />
+                      Generate QR
+                    </Button>
+                    <Button 
+                      onClick={handleSearch}
+                      className="bg-green-600 hover:bg-green-700 text-white px-8"
+                      size="lg"
+                    >
+                      Track
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid md:grid-cols-4 gap-4">
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-sm font-medium opacity-90">Blockchain Verified</h3>
+                  </div>
+                  <p className="text-2xl font-bold">100%</p>
+                  <p className="text-xs opacity-75">Immutable Records</p>
+                </Card>
+
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <Package className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-sm font-medium opacity-90">Total Batches</h3>
+                  </div>
+                  <p className="text-2xl font-bold">{totalBatches}</p>
+                  <p className="text-xs opacity-75">Tracked Products</p>
+                </Card>
+
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <Tractor className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-sm font-medium opacity-90">Registered Farmers</h3>
+                  </div>
+                  <p className="text-2xl font-bold">500+</p>
+                  <p className="text-xs opacity-75">Active Users</p>
+                </Card>
+
+                <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <Leaf className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-sm font-medium opacity-90">Sustainable</h3>
+                  </div>
+                  <p className="text-2xl font-bold">Green</p>
+                  <p className="text-xs opacity-75">Eco-Friendly</p>
+                </Card>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div className="container mx-auto px-4 sm:px-6 relative z-20">
-            <div className="max-w-3xl">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight mb-6">
-                {t('hero.titleMain')}<br />
-                <span className="text-emerald-400">{t('hero.titleSpan')}</span>
-              </h1>
-              
-              <p className="text-lg sm:text-xl text-slate-200 mb-10 max-w-2xl leading-relaxed">
-                {t('hero.description')}
+        {/* How It Works Section - Government Style */}
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <Badge className="mb-4 bg-green-600 text-white">
+                How It Works
+              </Badge>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Blockchain-Powered Transparency
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Four simple steps to complete supply chain visibility
               </p>
+            </div>
 
-              {/* Search Bar */}
-<div className="w-full max-w-xl">
-  <div className="flex flex-wrap items-center gap-2 bg-white rounded-lg shadow-2xl p-2">
+            <div className="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto">
+              <Card className="text-center p-6 border-2 hover:border-green-500 transition-all hover:shadow-xl">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Tractor className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-gray-900">1. Farmer Registers</h3>
+                <p className="text-sm text-gray-600">Batch created on blockchain with harvest details</p>
+              </Card>
 
-    {/* Search Icon */}
-    <Search className="w-5 h-5 text-slate-400 ml-2" />
+              <Card className="text-center p-6 border-2 hover:border-blue-500 transition-all hover:shadow-xl">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Store className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-gray-900">2. Distributor Receives</h3>
+                <p className="text-sm text-gray-600">Ownership transferred and verified on-chain</p>
+              </Card>
 
-    {/* Input */}
-    <input
-      type="text"
-      placeholder={t("index.searchPlaceholder")}
-      className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-lg px-2 py-2 text-slate-800 placeholder:text-slate-400"
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-    />
+              <Card className="text-center p-6 border-2 hover:border-purple-500 transition-all hover:shadow-xl">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShoppingCart className="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-gray-900">3. Retailer Stocks</h3>
+                <p className="text-sm text-gray-600">Product reaches retail with complete history</p>
+              </Card>
 
-    {/* QR Button */}
-    <Button
-      variant="ghost"
-      className="flex items-center gap-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 whitespace-nowrap"
-      onClick={() => {
-        setBatchId(search);
-        setQrOpen(true);
-      }}
-      title="Generate QR"
-    >
-      <QrCode className="w-5 h-5" />
-      Generate QR
-    </Button>
+              <Card className="text-center p-6 border-2 hover:border-orange-500 transition-all hover:shadow-xl">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User className="w-8 h-8 text-orange-600" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-gray-900">4. Consumer Verifies</h3>
+                <p className="text-sm text-gray-600">Scan QR code to view complete journey</p>
+              </Card>
+            </div>
+          </div>
+        </section>
 
-    {/* Track Button */}
-    <Button
-      size="lg"
-      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-md px-6 h-11 text-base font-medium flex items-center gap-2 whitespace-nowrap"
-      onClick={handleSearch}
-    >
-      {t("index.trackButton")}
-      <ArrowRight className="w-4 h-4" />
-    </Button>
+        {/* Crop Price Prediction Section */}
+        <section className="py-16 bg-gradient-to-br from-emerald-50 to-white">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl sm:text-4xl font-serif font-bold text-emerald-900 mb-3 flex items-center justify-center gap-2">
+                  <Sprout className="w-8 h-8 text-emerald-600" />
+                  Smart Crop Price Prediction
+                </h2>
+                <p className="text-slate-600 text-lg">Get Real-time price predictions based on your district's soil type</p>
+              </div>
 
-  </div>
-</div>
-
+              <Card className="border-emerald-200 shadow-xl bg-white/80 backdrop-blur-sm">
+                <CardContent className="p-6 sm:p-8">
+                  <Link to="/price-prediction" className="block">
+                    <Button 
+                      size="lg" 
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg py-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Target className="w-5 h-5 mr-2" />
+                      Open Advanced Price Predictor
+                      <ChevronRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </Link>
+                  
+                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                    <div className="p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-700">30+</div>
+                      <div className="text-sm text-slate-600">Districts Covered</div>
+                    </div>
+                    <div className="p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-700">8</div>
+                      <div className="text-sm text-slate-600">Soil Types</div>
+                    </div>
+                    <div className="p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-700">93%</div>
+                      <div className="text-sm text-slate-600">Accuracy</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
@@ -445,6 +591,177 @@ const Index = () => {
                 </Button>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Platform Features Section */}
+        <section className="py-20 bg-gradient-to-br from-slate-50 via-white to-green-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <Badge className="mb-4 bg-green-600 text-white">
+                {t('index.platformFeatures') || 'Platform Features'}
+              </Badge>
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                Comprehensive Agricultural Solutions
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Empowering farmers with cutting-edge technology and government-backed services
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+              {/* Blockchain Tracking */}
+              <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 hover:border-blue-500">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-blue-600 rounded-full text-white">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Blockchain Tracking</h3>
+                      <Badge className="bg-blue-500 text-white">Transparency</Badge>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-4 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span>Supply chain transparency</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span>QR code generation</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span>Immutable blockchain records</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span>Price transparency</span>
+                    </li>
+                  </ul>
+                  <Link to="/batch?id=1">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                      Track Products <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Weather Alerts */}
+              <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-cyan-50 to-blue-50 border-2 border-cyan-200 hover:border-cyan-500">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-cyan-600 rounded-full text-white">
+                      <CloudRain className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Weather Alerts</h3>
+                      <Badge className="bg-cyan-500 text-white">Real-time</Badge>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-4 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-cyan-600 mt-0.5 flex-shrink-0" />
+                      <span>7-day weather forecasts</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-cyan-600 mt-0.5 flex-shrink-0" />
+                      <span>Multi-channel alerts</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-cyan-600 mt-0.5 flex-shrink-0" />
+                      <span>Irrigation advisories</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-cyan-600 mt-0.5 flex-shrink-0" />
+                      <span>Pest outbreak alerts</span>
+                    </li>
+                  </ul>
+                  <Link to="/weather-alerts">
+                    <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
+                      View Weather <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Government Schemes */}
+              <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 hover:border-indigo-500">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-indigo-600 rounded-full text-white">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Government Schemes</h3>
+                      <Badge className="bg-indigo-500 text-white">Benefits</Badge>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-4 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                      <span>PM-KISAN, PMFBY, KCC</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                      <span>Expiry alerts</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                      <span>Direct portal links</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                      <span>Eligibility checks</span>
+                    </li>
+                  </ul>
+                  <Link to="/gov-schemes">
+                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                      Explore Schemes <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Storage Services */}
+              <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 hover:border-orange-500">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-orange-600 rounded-full text-white">
+                      <Warehouse className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Storage Services</h3>
+                      <Badge className="bg-orange-500 text-white">Preservation</Badge>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-4 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                      <span>Warehouses & cold storage</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                      <span>Alternate crop uses</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                      <span>CSIR-CFTRI guidelines</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                      <span>KVK and testing labs</span>
+                    </li>
+                  </ul>
+                  <Link to="/storage-services">
+                    <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white">
+                      Find Storage <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </section>
       </main>

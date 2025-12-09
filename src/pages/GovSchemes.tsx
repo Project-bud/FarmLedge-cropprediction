@@ -115,7 +115,7 @@ const GovSchemes = () => {
 		<div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
 			<Navigation />
 
-			<section className="pt-32 pb-16 bg-gradient-to-r from-indigo-700 via-blue-600 to-purple-700">
+			<section className="pt-32 pb-16 bg-gradient-to-r from-indigo-500 via-blue-400 to-purple-500">
 				<div className="container mx-auto px-4">
 					<div className="flex items-center gap-4 mb-6">
 						<div className="p-4 bg-white/90 rounded-xl shadow-lg">

@@ -1,6 +1,5 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { SoilAnalyzer } from "@/components/SoilAnalyzer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,12 +34,6 @@ const Services = () => {
       title: "Scheme Expiry Alerts",
       description: "Never miss government scheme deadlines",
       color: "bg-orange-100 text-orange-600"
-    },
-    {
-      icon: <TrendingUp className="h-6 w-6" />,
-      title: "Grade-Based Pricing",
-      description: "Fair pricing based on crop quality grades",
-      color: "bg-green-100 text-green-600"
     },
     {
       icon: <BookOpen className="h-6 w-6" />,
@@ -160,23 +153,6 @@ const Services = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           
-          {/* Soil Analysis Section */}
-          <div id="soil-analysis" className="scroll-mt-20">
-            <div className="mb-8">
-              <Badge className="mb-4 bg-green-100 text-green-700 border-green-200">
-                <Leaf className="h-3 w-3 mr-1" />
-                Soil Testing & Analysis
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Scientific Soil Quality Analysis
-              </h2>
-              <p className="text-gray-600 max-w-3xl">
-                Analyze your soil composition and get personalized recommendations for optimal crop selection and soil management practices.
-              </p>
-            </div>
-            <SoilAnalyzer />
-          </div>
-
           {/* Weather Alerts Section */}
           <div id="weather-alerts" className="mt-24 scroll-mt-20">
             <div className="mb-8">
@@ -378,118 +354,6 @@ const Services = () => {
                     <span className="text-sm font-medium text-blue-900">CSIR-CFTRI Research</span>
                   </a>
                 </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Grade-Based Pricing Section */}
-          <div id="grade-pricing" className="mt-24 scroll-mt-20">
-            <div className="mb-8">
-              <Badge className="mb-4 bg-green-100 text-green-700 border-green-200">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                Grade-Based Pricing
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Fair Pricing Based on Crop Quality
-              </h2>
-              <p className="text-gray-600 max-w-3xl">
-                Get fair market prices based on scientifically assessed crop quality grades and real-time market dynamics.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-green-100 rounded-xl">
-                    <Award className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-green-900">Quality Grading</h3>
-                </div>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Scientific quality assessment using AI/ML</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Grade A, B, C classification based on standards</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Moisture content and purity analysis</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Blockchain-verified quality certificates</span>
-                  </li>
-                </ul>
-              </Card>
-
-              <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-blue-100 rounded-xl">
-                    <TrendingUp className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-blue-900">Market Pricing</h3>
-                </div>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-blue-600 mt-0.5">✓</span>
-                    <span>Real-time market price updates</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-blue-600 mt-0.5">✓</span>
-                    <span>Grade-specific price recommendations</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-blue-600 mt-0.5">✓</span>
-                    <span>Historical price trend analysis</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-blue-600 mt-0.5">✓</span>
-                    <span>Transparent pricing with no hidden margins</span>
-                  </li>
-                </ul>
-              </Card>
-
-              <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-purple-100 rounded-xl">
-                    <BookOpen className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-purple-900">Price Discovery</h3>
-                </div>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-purple-600 mt-0.5">✓</span>
-                    <span>Compare prices across multiple mandis</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-purple-600 mt-0.5">✓</span>
-                    <span>Direct buyer-seller negotiation platform</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-purple-600 mt-0.5">✓</span>
-                    <span>Minimum Support Price (MSP) tracking</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-purple-600 mt-0.5">✓</span>
-                    <span>Best time to sell recommendations</span>
-                  </li>
-                </ul>
-              </Card>
-            </div>
-
-            <Card className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Start Using Grade-Based Pricing</h4>
-                  <p className="text-sm text-gray-600">Connect your harvest to get quality assessment and fair pricing</p>
-                </div>
-                <Button size="lg">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Get Started
-                </Button>
               </div>
             </Card>
           </div>

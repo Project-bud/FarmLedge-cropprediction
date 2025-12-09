@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Users, FileText, Navigation as NavIcon, Search, Phone, Mail, Building, Loader2, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MapPin, Users, FileText, Navigation as NavIcon, Search, Phone, Mail, Building, Loader2, X, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -458,6 +459,16 @@ const LocationServices = () => {
       {/* Services List */}
       <section className="py-12">
         <div className="container mx-auto px-4">
+          {/* Info Alert */}
+          {!location && (
+            <Alert className="mb-6 border-rose-200 bg-rose-50">
+              <Info className="h-4 w-4 text-rose-600" />
+              <AlertDescription className="text-rose-900">
+                Enable location access to see accurate distances and get directions to nearby agricultural services.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900">
               Nearby Services {location && `in ${location.city}`}
@@ -703,22 +714,44 @@ const LocationServices = () => {
 
           <div className="space-y-4 mt-4">
             {/* Embedded Map */}
-            <div className="relative w-full h-[500px] bg-gray-100 rounded-lg overflow-hidden">
+            <div className="relative w-full h-[500px] bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-300">
               {location ? (
-                <iframe
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  style={{ border: 0 }}
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.05},${location.latitude - 0.05},${location.longitude + 0.05},${location.latitude + 0.05}&layer=mapnik&marker=${location.latitude},${location.longitude}`}
-                  allowFullScreen
-                  title="Services Map"
-                ></iframe>
+                <div className="w-full h-full">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.05},${location.latitude - 0.05},${location.longitude + 0.05},${location.latitude + 0.05}&layer=mapnik&marker=${location.latitude},${location.longitude}`}
+                    allowFullScreen
+                    title="Services Map"
+                    loading="lazy"
+                  ></iframe>
+                  <div className="absolute bottom-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md">
+                    <p className="text-sm font-medium text-gray-900">{location.city}, {location.state}</p>
+                    <p className="text-xs text-gray-600">
+                      {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-600">Enable location to view map</p>
+                    <p className="text-gray-600 mb-4">Enable location to view map</p>
+                    <Button onClick={getLocation} disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Detecting...
+                        </>
+                      ) : (
+                        <>
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Get My Location
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}
